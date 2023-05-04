@@ -21,11 +21,14 @@ contract PatentManagement {
     mapping(address => bytes32[]) public ownerPatents;
     mapping(address => bytes32[]) public licenseePatents;
 
-    // event PatentDraftSubmitted(bytes32 indexed patentId, address indexed owner, uint256 expirationDate);
-    // event PatentGranted(bytes32 indexed patentId, address indexed owner, uint256 expirationDate);
-    // event RoyaltyContractCreated(bytes32 indexed patentId, address indexed licensor, uint256 royaltyFee, uint256 paymentInterval);
-    // event RoyaltyContractApproved(bytes32 indexed patentId, address indexed lincesedOrgRoyaltyContract, address indexed licensee);
-    // event RoyaltyContractDestroyed(bytes32 indexed patentId, address indexed licensee, address indexed lincesedOrgRoyaltyContract);
+    event PatentDraftSubmitted(bytes32 indexed patentId, address indexed owner, uint256 expirationDate);
+    event PatentGranted(bytes32 indexed patentId, address indexed owner, uint256 expirationDate);
+    event PatentRevoked(bytes32 indexed patentId, address indexed owner, uint256 expirationDate);
+    event PatentExtended(bytes32 indexed patentId, address indexed owner, uint256 expirationDate);
+    event RoyaltyContractCreated(bytes32 indexed patentId, address indexed licensor, uint256 royaltyFee, uint256 paymentInterval, address indexed licensee, address royaltyContractAddress);
+    event RoyaltyContractApproved(bytes32 indexed patentId, address indexed lincesedOrgRoyaltyContract, address indexed licensee);
+    event RoyaltyContractDestroyed(bytes32 indexed patentId, address indexed licensee, address indexed lincesedOrgRoyaltyContract);
+    event RoyaltyContractVerified(bytes32 indexed patentId, address indexed licensee, address indexed lincesedOrgRoyaltyContract);
 
     constructor() {
         admin = payable(msg.sender);
@@ -93,7 +96,7 @@ contract PatentManagement {
         newPatent.expirationDate = block.timestamp + EXPIRATION_DURATION;
         newPatent.isGranted = false;
         
-        // emit PatentDraftSubmitted(patentId, msg.sender, newPatent.expirationDate);
+        emit PatentDraftSubmitted(patentId, msg.sender, newPatent.expirationDate);
         admin.transfer(msg.value); // pay fee to the admin
 
     }
@@ -111,7 +114,7 @@ contract PatentManagement {
         require(patents[_patentId].isGranted, "Patent not granted.");
         require(patents[_patentId].expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
 
-        address newRoyaltyContract = address(new Royalty(_licensee, _royaltyFee, _paymentInterval, _contractExpirationDate, payable(msg.sender)));
+        address newRoyaltyContract = address(new Royalty(_patentId, _licensee, _royaltyFee, _paymentInterval, _contractExpirationDate, payable(msg.sender)));
         lincesedOrgRoyaltyContract[_patentId][_licensee] = newRoyaltyContract;
 
         Patent storage patent = patents[_patentId];
@@ -120,7 +123,7 @@ contract PatentManagement {
         licenseePatents[_licensee].push(_patentId);
         
 
-        // emit RoyaltyContractCreated(_patentId, msg.sender, _royaltyFee, _paymentInterval);
+        emit RoyaltyContractCreated(_patentId, msg.sender, _royaltyFee, _paymentInterval, _licensee, newRoyaltyContract);
     }
 
     function approveRoyaltyContract(bytes32 _patentId) external onlyLicensedOrg(_patentId) {
@@ -130,7 +133,7 @@ contract PatentManagement {
         Royalty royaltyContract = Royalty(lincesedOrgRoyaltyContract[_patentId][msg.sender]);
         royaltyContract.approveForRoyalty();
         
-        // emit RoyaltyContractApproved(_patentId, lincesedOrgRoyaltyContract[_patentId][msg.sender], msg.sender);
+        emit RoyaltyContractApproved(_patentId, lincesedOrgRoyaltyContract[_patentId][msg.sender], msg.sender);
     }
 
     function destroyRoyaltyContract(bytes32 _patentId, address _licensee) external onlyPatentOwner(_patentId) {
@@ -150,10 +153,10 @@ contract PatentManagement {
         _removeAddressValueFromArray(patent.licensees, _licensee);
         _removeBytes32ValueFromArray(licenseePatents[_licensee], _patentId);
 
-        // emit RoyaltyContractDestroyed(_patentId, _licensee, royaltyContractAddress);
+        emit RoyaltyContractDestroyed(_patentId, _licensee, royaltyContractAddress);
     }
 
-    function checkValidityOfRoyaltyContract(bytes32 _patentId, address _licensee) external onlyPatentOwner(_patentId) returns(bool) {
+    function checkValidityOfRoyaltyContract(bytes32 _patentId, address _licensee) external onlyPatentOwner(_patentId) {
         require(patents[_patentId].isGranted, "Patent not granted.");
 
         address royaltyContractAddress = lincesedOrgRoyaltyContract[_patentId][_licensee];
@@ -168,30 +171,35 @@ contract PatentManagement {
             Patent storage patent = patents[_patentId];
             _removeAddressValueFromArray(patent.licensees, _licensee);
             _removeBytes32ValueFromArray(licenseePatents[_licensee], _patentId);
-            return false;
+            emit RoyaltyContractDestroyed(_patentId, _licensee, royaltyContractAddress);
+
+        } else {
+            emit RoyaltyContractVerified(_patentId, _licensee, royaltyContractAddress);
         }
 
-        return true;
-
     }
 
 
-    function grantPatent(bytes32 _patentId) public onlyAdmin {
+    function grantPatent(bytes32 _patentId) external onlyAdmin {
         require(!patents[_patentId].isGranted, "Patent already granted.");
         patents[_patentId].isGranted = true;
-        // emit PatentGranted(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
+
+        emit PatentGranted(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
     }
 
-    function revokePatent(bytes32 _patentId) public onlyAdmin {
+    function revokePatent(bytes32 _patentId) external onlyAdmin {
         require(patents[_patentId].isGranted, "Patent already revoked.");
         patents[_patentId].isGranted = false;
-        // emit PatentGranted(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
+
+        emit PatentRevoked(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
     }
 
-    function extendExpirationDateOfPatent(bytes32 _patentId) public onlyAdmin {
+    function extendExpirationDateOfPatent(bytes32 _patentId) external onlyAdmin {
         require(patents[_patentId].isGranted, "Patent not granted.");
         require(patents[_patentId].expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
         patents[_patentId].expirationDate += 5 * 365 days;
+
+        emit PatentExtended(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
     }
   
 }

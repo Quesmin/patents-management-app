@@ -1,67 +1,76 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract Royalty {
+import '@openzeppelin/contracts/security/Pausable.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
+
+contract Royalty is Pausable, Ownable {
     address public licensee;
+    address payable public patentOwner;
     uint256 public royaltyFee;
     uint256 public paymentInterval;
-    uint256 public expirationDate;
-    uint256 public payedUntil;
+    uint256 public expirationPeriod;
+    uint256 public paidUntil;
     bool public approvedForDestroy;
     bool public approvedForRoyalty;
-    address payable public patentOwner;
+    bytes32 public patentId;
+
+    event RoyaltyContractApprovedForDestroy(bytes32 indexed patentId, address indexed owner, address licensee, address indexed contractAddress);
+    event RoyaltyPaid(bytes32 indexed patentId, address indexed contractAddress, address indexed licensee, uint256 royaltyFee, uint256 paidUntil );
+
     
-    constructor(address _licensee, uint256 _royaltyFee, uint256 _paymentInterval, uint256 _expirationDate, address payable _patentOwner) {
+    constructor(bytes32 _patentId, address _licensee, uint256 _royaltyFee, uint256 _paymentInterval, uint256 _expirationPeriod, address payable _patentOwner) Pausable() Ownable() {
+        patentId = _patentId;
         licensee = _licensee;
         royaltyFee = _royaltyFee;
         paymentInterval = _paymentInterval;
-        expirationDate = _expirationDate;
-        payedUntil = block.timestamp + _paymentInterval;
+        expirationPeriod = block.timestamp + _expirationPeriod;
+        paidUntil = block.timestamp + _paymentInterval;
 
         approvedForDestroy = false;
         approvedForRoyalty = false;
         patentOwner = _patentOwner;
     }
 
-    //TODOOOOOOO: MAYBE ADD CHECKS ONLY ALLOW MANAGEMENT CONTRACT TO MAKE THESE CALLS (WHERE IS THE CASE)
-
-    function approveForRoyalty() public {
-        require(msg.sender == licensee, "Only licensee can approve for royalty.");
+    function approveForRoyalty() external onlyOwner whenNotPaused{
         approvedForRoyalty = true;
     }
 
-    function approveForDestroy() public {
+    function approveForDestroy() external whenNotPaused {
         require(msg.sender == licensee, "Only licensee can approve for destroy.");
         approvedForDestroy = true;
+
+        emit RoyaltyContractApprovedForDestroy(patentId, patentOwner, licensee, address(this));
     }
 
-    function getLicenseeApprovalForDestroy() external view returns (bool) {
+    function getLicenseeApprovalForDestroy() external onlyOwner whenNotPaused view returns (bool) {
         return approvedForDestroy;
     }
 
-    function payRoyalty() external payable{
+    function payRoyalty() external whenNotPaused payable{
         require(msg.sender == licensee, "Only licensee can pay the royalty.");
         require(msg.value == royaltyFee, "Incorrect fee value.");
-        require(payedUntil + paymentInterval <= expirationDate, "The payement extension interval exceeds expiration date.");
+        require(paidUntil + paymentInterval <= expirationPeriod, "The payment extension interval exceeds expiration date.");
 
         patentOwner.transfer(msg.value);
-        payedUntil = payedUntil + paymentInterval;
+        paidUntil = paidUntil + paymentInterval;
+
+        emit RoyaltyPaid(patentId, address(this), licensee, royaltyFee, paidUntil);
     }
 
-    function getIsContractValid() external view returns (bool) {
-        if(block.timestamp > expirationDate){
+    function getIsContractValid() external onlyOwner whenNotPaused view returns (bool) {
+        if(block.timestamp > expirationPeriod){
             return false;
         }
 
-        if(block.timestamp > payedUntil){
+        if(block.timestamp > paidUntil){
             return false;
         }
 
         return true;
     }
 
-    function destroySmartContract() external {
-        require(msg.sender == patentOwner, "Only the patent owner can destroy the contract");
-        selfdestruct(patentOwner);
+    function destroySmartContract() external onlyOwner whenNotPaused {
+        _pause();
     }
 }

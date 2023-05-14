@@ -7,6 +7,7 @@ contract PatentManagement {
 
     address payable public admin;
     uint256 public constant EXPIRATION_DURATION = 20 * 365 days; // 20 years in seconds
+    uint256 public constant EXNTENSION_DURATION = 5 * 365 days; // 5 years in seconds
     uint256 public constant DRAFT_FEE = 3 ether;
 
     struct Patent {
@@ -84,6 +85,22 @@ contract PatentManagement {
         _;
     }
 
+    function getPatentsByOwner(address owner) public view returns (bytes32[] memory) {
+        return ownerPatents[owner];
+    }
+
+     function checkPatentStatus(bytes32 _patentId) public view returns (bool) {
+        return patents[_patentId].isGranted;
+    }
+
+    function getPatentData(bytes32 _patentId) public view returns (address, address[] memory, uint256, bool) {
+        Patent memory patent = patents[_patentId];
+        return (patent.owner, patent.licensees, patent.expirationDate, patent.isGranted);
+    }
+
+    function getContractAddressForLicensee(bytes32 _patentId, address _licensee) public view returns (address) {
+        return lincesedOrgRoyaltyContract[_patentId][_licensee];
+    }
 
     function submitDraftPatent() external payable {
         require(msg.value == DRAFT_FEE, "Incorrect draft fee");
@@ -101,20 +118,11 @@ contract PatentManagement {
 
     }
 
-    function checkPatentStatus(bytes32 _patentId) public view returns (bool) {
-        return patents[_patentId].isGranted;
-    }
-
-    function getPatentData(bytes32 _patentId) public view returns (address, address[] memory, uint256, bool) {
-        Patent memory patent = patents[_patentId];
-        return (patent.owner, patent.licensees, patent.expirationDate, patent.isGranted);
-    }
-
-    function createRoyaltyContract(bytes32 _patentId, address _licensee, uint256 _royaltyFee, uint256 _paymentInterval, uint256 _contractExpirationDate) external onlyPatentOwner(_patentId) {
+    function createRoyaltyContract(bytes32 _patentId, address _licensee, uint256 _royaltyFee, uint256 _paymentInterval, uint256 _contractExpirationPeriod) external onlyPatentOwner(_patentId) {
         require(patents[_patentId].isGranted, "Patent not granted.");
         require(patents[_patentId].expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
 
-        address newRoyaltyContract = address(new Royalty(_patentId, _licensee, _royaltyFee, _paymentInterval, _contractExpirationDate, payable(msg.sender)));
+        address newRoyaltyContract = address(new Royalty(_patentId, _licensee, _royaltyFee, _paymentInterval, _contractExpirationPeriod, payable(msg.sender)));
         lincesedOrgRoyaltyContract[_patentId][_licensee] = newRoyaltyContract;
 
         Patent storage patent = patents[_patentId];
@@ -197,7 +205,7 @@ contract PatentManagement {
     function extendExpirationDateOfPatent(bytes32 _patentId) external onlyAdmin {
         require(patents[_patentId].isGranted, "Patent not granted.");
         require(patents[_patentId].expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
-        patents[_patentId].expirationDate += 5 * 365 days;
+        patents[_patentId].expirationDate += EXNTENSION_DURATION;
 
         emit PatentExtended(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
     }

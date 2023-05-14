@@ -22,7 +22,6 @@ describe("Royalty", function () {
         [admin, patentOwner, licensee, other] = await ethers.getSigners();
         ownerInitialBalance = await patentOwner.getBalance();
         Royalty = await ethers.getContractFactory("Royalty");
-        // (expirationDate = Math.floor(Date.now() / 1000) + 86400 * 99999999), //300 days
         royalty = await Royalty.connect(admin).deploy(
             patentId,
             licensee.address,

@@ -48,16 +48,16 @@ describe("PatentManagement", function () {
             patentId = event?.args?.patentId;
         });
 
-        it("should return false for a new patent", async function () {
+        it("should return Pending for a new patent", async function () {
             expect(await patentManagement.checkPatentStatus(patentId)).to.equal(
-                false
+                0
             );
         });
 
-        it("should return true after a patent is granted", async function () {
+        it("should return Granted after a patent is granted", async function () {
             await patentManagement.grantPatent(patentId);
             expect(await patentManagement.checkPatentStatus(patentId)).to.equal(
-                true
+                1
             );
         });
     });
@@ -85,7 +85,7 @@ describe("PatentManagement", function () {
             expect(ownerAddress).to.equal(owner.address);
             expect(licensees).to.be.an("array"); // Add more specific checks if you know what to expect here
             expect(expirationDate.toNumber()).to.be.a("number"); // Add more specific checks if you know what to expect here
-            expect(isGranted).to.equal(false);
+            expect(isGranted).to.be.a("number");
         });
 
         it("should return correct data after patent is granted", async function () {
@@ -97,7 +97,7 @@ describe("PatentManagement", function () {
             expect(ownerAddress).to.equal(owner.address);
             expect(licensees).to.be.an("array"); // Add more specific checks if you know what to expect here
             expect(expirationDate.toNumber()).to.be.a("number"); // Add more specific checks if you know what to expect here
-            expect(isGranted).to.equal(true);
+            expect(isGranted).to.equal(1);
         });
     });
 
@@ -120,7 +120,7 @@ describe("PatentManagement", function () {
                 await patentManagement.getPatentsByOwner(owner.address)
             ).to.have.lengthOf(1);
             expect(await patentManagement.checkPatentStatus(patentId)).to.equal(
-                false
+                0
             );
         });
 

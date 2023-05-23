@@ -10,11 +10,22 @@ contract PatentManagement {
     uint256 public constant EXNTENSION_DURATION = 5 * 365 days; // 5 years in seconds
     uint256 public constant DRAFT_FEE = 3 ether;
 
+    // uint8 constant StatusPending = 0;
+    // uint8 constant StatusGranted = 1;
+    // uint8 constant StatusRevoked = 0;
+
+    enum Status {
+        Pending,
+        Granted,
+        Rejected
+    }
+
+
     struct Patent {
         address owner;
         address[] licensees;
         uint256 expirationDate;
-        bool isGranted;
+        Status status;
     }
 
     mapping(bytes32 => mapping(address => address)) lincesedOrgRoyaltyContract;
@@ -89,13 +100,13 @@ contract PatentManagement {
         return ownerPatents[owner];
     }
 
-     function checkPatentStatus(bytes32 _patentId) public view returns (bool) {
-        return patents[_patentId].isGranted;
+     function checkPatentStatus(bytes32 _patentId) public view returns (Status) {
+        return patents[_patentId].status;
     }
 
-    function getPatentData(bytes32 _patentId) public view returns (address, address[] memory, uint256, bool) {
+    function getPatentData(bytes32 _patentId) public view returns (address, address[] memory, uint256, Status) {
         Patent memory patent = patents[_patentId];
-        return (patent.owner, patent.licensees, patent.expirationDate, patent.isGranted);
+        return (patent.owner, patent.licensees, patent.expirationDate, patent.status);
     }
 
     function getContractAddressForLicensee(bytes32 _patentId, address _licensee) public view returns (address) {
@@ -111,7 +122,7 @@ contract PatentManagement {
         ownerPatents[msg.sender].push(patentId);
         newPatent.owner = msg.sender;
         newPatent.expirationDate = block.timestamp + EXPIRATION_DURATION;
-        newPatent.isGranted = false;
+        newPatent.status = Status.Pending;
         
         emit PatentDraftSubmitted(patentId, msg.sender, newPatent.expirationDate);
         admin.transfer(msg.value); // pay fee to the admin
@@ -119,7 +130,7 @@ contract PatentManagement {
     }
 
     function createRoyaltyContract(bytes32 _patentId, address _licensee, uint256 _royaltyFee, uint256 _paymentInterval, uint256 _contractExpirationPeriod) external onlyPatentOwner(_patentId) {
-        require(patents[_patentId].isGranted, "Patent not granted.");
+        require(patents[_patentId].status == Status.Granted, "Patent not granted.");
         require(patents[_patentId].expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
 
         address newRoyaltyContract = address(new Royalty(_patentId, _licensee, _royaltyFee, _paymentInterval, _contractExpirationPeriod, payable(msg.sender)));
@@ -135,7 +146,7 @@ contract PatentManagement {
     }
 
     function approveRoyaltyContract(bytes32 _patentId) external onlyLicensedOrg(_patentId) {
-        require(patents[_patentId].isGranted, "Patent not granted.");
+        require(patents[_patentId].status == Status.Granted, "Patent not granted.");
         require(patents[_patentId].expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
         
         Royalty royaltyContract = Royalty(lincesedOrgRoyaltyContract[_patentId][msg.sender]);
@@ -145,7 +156,7 @@ contract PatentManagement {
     }
 
     function destroyRoyaltyContract(bytes32 _patentId, address _licensee) external onlyPatentOwner(_patentId) {
-        require(patents[_patentId].isGranted, "Patent not granted.");
+        require(patents[_patentId].status == Status.Granted, "Patent not granted.");
 
         address royaltyContractAddress = lincesedOrgRoyaltyContract[_patentId][_licensee];
         require(royaltyContractAddress != address(0), "Royalty contract does not exist");
@@ -165,7 +176,7 @@ contract PatentManagement {
     }
 
     function checkValidityOfRoyaltyContract(bytes32 _patentId, address _licensee) external onlyPatentOwner(_patentId) {
-        require(patents[_patentId].isGranted, "Patent not granted.");
+        require(patents[_patentId].status == Status.Granted, "Patent not granted.");
 
         address royaltyContractAddress = lincesedOrgRoyaltyContract[_patentId][_licensee];
         require(royaltyContractAddress != address(0), "Royalty contract does not exist");
@@ -189,21 +200,21 @@ contract PatentManagement {
 
 
     function grantPatent(bytes32 _patentId) external onlyAdmin {
-        require(!patents[_patentId].isGranted, "Patent already granted.");
-        patents[_patentId].isGranted = true;
+        require(patents[_patentId].status != Status.Granted, "Patent not granted.");
+        patents[_patentId].status = Status.Granted;
 
         emit PatentGranted(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
     }
 
     function revokePatent(bytes32 _patentId) external onlyAdmin {
-        require(patents[_patentId].isGranted, "Patent already revoked.");
-        patents[_patentId].isGranted = false;
+        require(patents[_patentId].status != Status.Rejected, "Patent already revoked.");
+        patents[_patentId].status = Status.Rejected;
 
         emit PatentRevoked(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
     }
 
     function extendExpirationDateOfPatent(bytes32 _patentId) external onlyAdmin {
-        require(patents[_patentId].isGranted, "Patent not granted.");
+        require(patents[_patentId].status == Status.Granted, "Patent not granted.");
         require(patents[_patentId].expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
         patents[_patentId].expirationDate += EXNTENSION_DURATION;
 

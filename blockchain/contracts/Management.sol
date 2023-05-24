@@ -10,16 +10,11 @@ contract PatentManagement {
     uint256 public constant EXNTENSION_DURATION = 5 * 365 days; // 5 years in seconds
     uint256 public constant DRAFT_FEE = 3 ether;
 
-    // uint8 constant StatusPending = 0;
-    // uint8 constant StatusGranted = 1;
-    // uint8 constant StatusRevoked = 0;
-
     enum Status {
         Pending,
         Granted,
         Rejected
     }
-
 
     struct Patent {
         address owner;

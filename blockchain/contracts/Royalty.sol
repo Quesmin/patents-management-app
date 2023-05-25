@@ -12,7 +12,7 @@ contract Royalty is Pausable, Ownable {
     uint256 public expirationPeriod;
     uint256 public paidUntil;
     bool public approvedForDestroy;
-    bool public approvedForRoyalty;
+    // bool public approvedForRoyalty;
     bytes32 public patentId;
 
     event RoyaltyContractApprovedForDestroy(bytes32 indexed patentId, address indexed owner, address licensee, address indexed contractAddress);
@@ -27,13 +27,14 @@ contract Royalty is Pausable, Ownable {
         expirationPeriod = block.timestamp + _expirationPeriod;
         paidUntil = block.timestamp + _paymentInterval;
 
+        _pause();
         approvedForDestroy = false;
-        approvedForRoyalty = false;
+        // approvedForRoyalty = false;
         patentOwner = _patentOwner;
     }
 
-    function approveForRoyalty() external onlyOwner whenNotPaused{
-        approvedForRoyalty = true;
+    function approveForRoyalty() external onlyOwner whenPaused{
+        _unpause();
     }
 
     function approveForDestroy() external whenNotPaused {

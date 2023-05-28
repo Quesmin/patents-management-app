@@ -19,6 +19,15 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true
     },
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": [
+        "warn", // or "error"
+        {
+            "argsIgnorePattern": "^_",
+            "varsIgnorePattern": "^_",
+            "caughtErrorsIgnorePattern": "^_"
+        }
+    ],
     "include": ["src"],
     "references": [{ "path": "./tsconfig.node.json" }]
 }

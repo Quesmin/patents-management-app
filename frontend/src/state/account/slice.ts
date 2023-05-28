@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { setCurrentAccountCaseReducer } from "./reducers";
 import { accountInitialState } from "./state";
 
-const AccountReducerSlice = createSlice({
+export const accountReducerSlice = createSlice({
     name: "account",
     initialState: accountInitialState,
     reducers: {
@@ -10,6 +10,4 @@ const AccountReducerSlice = createSlice({
     },
 });
 
-export const { setCurrentAccount } = AccountReducerSlice.actions;
-
-export const AccountReducer = AccountReducerSlice.reducer;
+export const { setCurrentAccount } = accountReducerSlice.actions;

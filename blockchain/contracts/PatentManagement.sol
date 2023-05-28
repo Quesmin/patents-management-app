@@ -18,6 +18,8 @@ contract PatentManagement {
     }
 
     struct Patent {
+        bytes32 id;
+        string title;
         address owner;
         address[] licensees;
         uint256 expirationDate;
@@ -25,10 +27,9 @@ contract PatentManagement {
         Status status;
     }
 
+
     mapping(bytes32 => mapping(address => address)) lincesedOrgRoyaltyContract;
-    mapping(bytes32 => Patent) public patents;
-    mapping(address => bytes32[]) public ownerPatents;
-    mapping(address => bytes32[]) public licenseePatents;
+    Patent[] public patents;
 
     event PatentDraftSubmitted(bytes32 indexed patentId, address indexed owner, uint256 expirationDate);
     event PatentGranted(bytes32 indexed patentId, address indexed owner, uint256 expirationDate);
@@ -45,14 +46,51 @@ contract PatentManagement {
         admin = payable(msg.sender);
     }
 
-    function _contains(address _addr, mapping(address => bytes32[]) storage _mapping, bytes32 _value) internal view returns (bool) {
-        bytes32[] memory values = _mapping[_addr];
-        for (uint i = 0; i < values.length; i++) {
-            if (values[i] == _value) {
+    function _contains(address _addr, address[] memory arr) internal pure returns (bool) {
+        for (uint i = 0; i < arr.length; i++) {
+            if (arr[i] == _addr) {
                 return true;
             }
         }
         return false;
+    }
+
+    function _getPatentIndexById(bytes32 _id) internal view returns (uint256) {
+        for(uint256 i = 0; i < patents.length; i++) {
+            if(patents[i].id == _id){
+                return i;
+            }
+        }
+
+        revert("Patent index not found");
+    }
+
+    function _setPatentAtIndex(uint256 _index, Patent memory _patent) internal {
+        require(_index < patents.length, "Invalid index");
+        patents[_index] = _patent;
+    }
+
+    function _getPatentById(bytes32 _id) internal view returns (Patent memory) {
+
+        for(uint256 i = 0; i < patents.length; i++) {
+            if(patents[i].id == _id){
+                return patents[i];
+            }
+        }
+
+        revert("Patent not found");
+
+    }
+
+    function _getPatentByOwner(address _owner) internal view returns (Patent memory) {
+
+        for(uint256 i = 0; i < patents.length; i++) {
+            if(patents[i].owner == _owner){
+                return patents[i];
+            }
+        }
+
+        revert("Patent index not found");
     }
 
     function _removeBytes32ValueFromArray(bytes32[] storage arr, bytes32 value) internal {
@@ -67,16 +105,28 @@ contract PatentManagement {
         }
     }
 
-    function _removeAddressValueFromArray(address[] storage arr, address value) internal {
+    function _removeAddressValueFromArray(address[] memory arr, address value) internal pure returns(address[] memory) {
+        uint256 indexToRemove = 0;
         for (uint256 i = 0; i < arr.length; i++) {
             if (arr[i] == value) {
-                if (i != arr.length - 1) {
-                    arr[i] = arr[arr.length - 1];
-                }
-                arr.pop();
-                return;
+                indexToRemove = i;
+                break;
             }
         }
+
+        if (indexToRemove < arr.length) {
+            // Shift the elements to the left starting from the index to remove
+            for (uint256 i = indexToRemove; i < arr.length - 1; i++) {
+                arr[i] = arr[i + 1];
+            }
+
+            // Resize the array by one element
+            assembly {
+                mstore(arr, sub(mload(arr), 1))
+            }
+        }
+
+        return arr;
     }
 
 
@@ -86,49 +136,88 @@ contract PatentManagement {
     }
 
     modifier onlyPatentOwner(bytes32 _patentId) {
-        require(_contains(msg.sender, ownerPatents, _patentId), "Only patent owner can perform this action.");
+        require(_getPatentById(_patentId).owner == msg.sender, "Only patent owner can perform this action.");
         _;
     }
 
      modifier onlyLicensedOrg(bytes32 _patentId) {
-        require(_contains(msg.sender, licenseePatents, _patentId) , "Only patent licensee can perform this action.");
+        address[] memory licenseesArr = _getPatentById(_patentId).licensees;
+        require(_contains(msg.sender, licenseesArr) , "Only patent licensee can perform this action.");
         _;
     }
 
-    function getPatentsByOwner(address owner) public view returns (bytes32[] memory) {
-        return ownerPatents[owner];
+    // function getAllPatentsByOwners() public view returns (Patent[] memory) {
+
+    //     uint256
+
+    //     for (uint256 i = 0; i < owners.length; i++) {
+
+    //         bytes32[] memory _patentIds = new bytes32[](ownerPatents[owners[i]].length);
+
+    //         for (uint256 j = 0; j < _patentIds.length; j++) {
+
+    //             _patents.push(patents[_patentIds[j]]);
+    //         }
+    //     }
+
+
+    //     Patent[] memory _patents = new Patent[](5);
+
+    //     for (uint256 i = 0; i < owners.length; i++) {
+
+    //         bytes32[] memory _patentIds = new bytes32[](ownerPatents[owners[i]].length);
+
+    //         for (uint256 j = 0; j < _patentIds.length; j++) {
+
+    //             _patents.push(patents[_patentIds[j]]);
+    //         }
+    //     }
+
+    //     return _patents;
+    // }
+
+    // function getPatentsByOwner(address owner) public view returns (bytes32[] memory) {
+    //     return ownerPatents[owner];
+    // }
+
+    // function checkPatentStatus(bytes32 _patentId) public view returns (Status) {
+    //     return patents[_patentId].status;
+    // }
+
+    // function checkPatentExpExtensionStatus(bytes32 _patentId) public view returns (Status) {
+    //     return patents[_patentId].expirationExtension;
+    // }
+
+    function viewPatents() public view returns(Patent[] memory) {
+        return patents;
     }
 
-    function checkPatentStatus(bytes32 _patentId) public view returns (Status) {
-        return patents[_patentId].status;
-    }
 
-    function checkPatentExpExtensionStatus(bytes32 _patentId) public view returns (Status) {
-        return patents[_patentId].expirationExtension;
-    }
-
-    function getPatentData(bytes32 _patentId) public view returns (address, address[] memory, uint256, Status, Status) {
-        Patent memory patent = patents[_patentId];
-        return (patent.owner, patent.licensees, patent.expirationDate, patent.expirationExtension, patent.status);
+    function getPatentData(bytes32 _patentId) public view returns (bytes32, string memory, address, address[] memory, uint256, Status, Status) {
+        Patent memory patent = _getPatentById(_patentId);
+        return (patent.id, patent.title, patent.owner, patent.licensees, patent.expirationDate, patent.expirationExtension, patent.status);
     }
 
     function getContractAddressForLicensee(bytes32 _patentId, address _licensee) public view returns (address) {
         return lincesedOrgRoyaltyContract[_patentId][_licensee];
     }
 
-    function submitDraftPatent() external payable {
+    function submitDraftPatent(string memory _title) external payable {
         require(msg.sender != admin, "Admin cannot submit draft patent.");
         require(msg.value == DRAFT_FEE, "Incorrect draft fee");
 
         //TODO: we might want to get the id from the FE
         bytes32 patentId = keccak256(abi.encodePacked(msg.sender, block.timestamp));
-        Patent storage newPatent = patents[patentId];
+        Patent memory newPatent;
 
-        ownerPatents[msg.sender].push(patentId);
+        newPatent.id = patentId;
+        newPatent.title = _title;
         newPatent.owner = msg.sender;
         newPatent.expirationDate = block.timestamp + EXPIRATION_DURATION;
         newPatent.status = Status.Pending;
         newPatent.expirationExtension = Status.NotStarted;
+
+        patents.push(newPatent);
         
         emit PatentDraftSubmitted(patentId, msg.sender, newPatent.expirationDate);
         admin.transfer(msg.value); // pay fee to the admin
@@ -138,8 +227,10 @@ contract PatentManagement {
 
     //Licensed Org actions
     function approveRoyaltyContract(bytes32 _patentId) external onlyLicensedOrg(_patentId) {
-        require(patents[_patentId].status == Status.Granted, "Patent not granted.");
-        require(patents[_patentId].expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
+        Patent memory currentPatent = _getPatentById(_patentId);
+        
+        require(currentPatent.status == Status.Granted, "Patent not granted.");
+        require(currentPatent.expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
         
         Royalty royaltyContract = Royalty(lincesedOrgRoyaltyContract[_patentId][msg.sender]);
         royaltyContract.approveForRoyalty();
@@ -150,17 +241,18 @@ contract PatentManagement {
 
     //Patent Owner actions
     function createRoyaltyContract(bytes32 _patentId, address _licensee, uint256 _royaltyFee, uint256 _paymentInterval, uint256 _contractExpirationPeriod) external onlyPatentOwner(_patentId) {
-        require(patents[_patentId].status == Status.Granted, "Patent not granted.");
-        require(patents[_patentId].expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
+        Patent memory currentPatent = _getPatentById(_patentId);
+        uint256 currentPatentIndex = _getPatentIndexById(_patentId);
+
+        require(currentPatent.status == Status.Granted, "Patent not granted.");
+        require(currentPatent.expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
 
         address newRoyaltyContract = address(new Royalty(_patentId, _licensee, _royaltyFee, _paymentInterval, _contractExpirationPeriod, payable(msg.sender)));
         lincesedOrgRoyaltyContract[_patentId][_licensee] = newRoyaltyContract;
-
-        Patent storage patent = patents[_patentId];
-        patent.licensees.push(_licensee);
-
-        licenseePatents[_licensee].push(_patentId);
         
+
+        currentPatent.licensees[currentPatent.licensees.length + 1] = _licensee;
+        _setPatentAtIndex(currentPatentIndex, currentPatent);
 
         emit RoyaltyContractCreated(_patentId, msg.sender, _royaltyFee, _paymentInterval, _licensee, newRoyaltyContract);
     }
@@ -168,7 +260,11 @@ contract PatentManagement {
   
 
     function destroyRoyaltyContract(bytes32 _patentId, address _licensee) external onlyPatentOwner(_patentId) {
-        require(patents[_patentId].status == Status.Granted, "Patent not granted.");
+        Patent memory currentPatent = _getPatentById(_patentId);
+        uint256 currentPatentIndex = _getPatentIndexById(_patentId);
+
+
+        require(currentPatent.status == Status.Granted, "Patent not granted.");
 
         address royaltyContractAddress = lincesedOrgRoyaltyContract[_patentId][_licensee];
         require(royaltyContractAddress != address(0), "Royalty contract does not exist");
@@ -179,29 +275,31 @@ contract PatentManagement {
 
         royaltyContract.destroySmartContract();
         delete lincesedOrgRoyaltyContract[_patentId][_licensee];
+        currentPatent.licensees = _removeAddressValueFromArray(currentPatent.licensees, _licensee);
+        _setPatentAtIndex(currentPatentIndex, currentPatent);
 
-        Patent storage patent = patents[_patentId];
-        _removeAddressValueFromArray(patent.licensees, _licensee);
-        _removeBytes32ValueFromArray(licenseePatents[_licensee], _patentId);
 
         emit RoyaltyContractDestroyed(_patentId, _licensee, royaltyContractAddress);
     }
 
     function checkValidityOfRoyaltyContract(bytes32 _patentId, address _licensee) external onlyPatentOwner(_patentId) {
-        require(patents[_patentId].status == Status.Granted, "Patent not granted.");
+        Patent memory currentPatent = _getPatentById(_patentId);
+        uint256 currentPatentIndex = _getPatentIndexById(_patentId);
+
+
+        require(currentPatent.status == Status.Granted, "Patent not granted.");
 
         address royaltyContractAddress = lincesedOrgRoyaltyContract[_patentId][_licensee];
         require(royaltyContractAddress != address(0), "Royalty contract does not exist");
 
         Royalty royaltyContract = Royalty(royaltyContractAddress);
 
-        if (patents[_patentId].expirationDate < block.timestamp + 1 days || !royaltyContract.getIsContractValid()) {
+        if (currentPatent.expirationDate < block.timestamp + 1 days || !royaltyContract.getIsContractValid()) {
             royaltyContract.destroySmartContract();
             delete lincesedOrgRoyaltyContract[_patentId][_licensee];
 
-            Patent storage patent = patents[_patentId];
-            _removeAddressValueFromArray(patent.licensees, _licensee);
-            _removeBytes32ValueFromArray(licenseePatents[_licensee], _patentId);
+            currentPatent.licensees = _removeAddressValueFromArray(currentPatent.licensees, _licensee);
+            _setPatentAtIndex(currentPatentIndex, currentPatent);
             emit RoyaltyContractDestroyed(_patentId, _licensee, royaltyContractAddress);
 
         } else {
@@ -211,8 +309,14 @@ contract PatentManagement {
     }
 
     function requestExtension(bytes32 _patentId) external onlyPatentOwner(_patentId) {
-        require(patents[_patentId].expirationExtension == Status.NotStarted, "Patent extension already requested.");
-        patents[_patentId].status = Status.Pending;
+        Patent memory currentPatent = _getPatentById(_patentId);
+        uint256 currentPatentIndex = _getPatentIndexById(_patentId);
+
+
+        require(currentPatent.expirationExtension == Status.NotStarted, "Patent extension already requested.");
+        currentPatent.status = Status.Pending;
+        _setPatentAtIndex(currentPatentIndex, currentPatent);
+
 
         // emit PatentEx(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
     }
@@ -222,38 +326,51 @@ contract PatentManagement {
 
     //Admin operations
     function handlePatentExtensionRequest(bytes32 _patentId, Status _newExtensionState) external onlyAdmin {
-        require(patents[_patentId].expirationExtension == Status.Pending, "Patent is not in requested state.");
+        Patent memory currentPatent = _getPatentById(_patentId);
+        uint256 currentPatentIndex = _getPatentIndexById(_patentId);
 
-        patents[_patentId].expirationExtension = _newExtensionState;
+        require(currentPatent.expirationExtension == Status.Pending, "Patent is not in requested state.");
+
+        currentPatent.expirationExtension = _newExtensionState;
+        _setPatentAtIndex(currentPatentIndex, currentPatent);
 
         if(_newExtensionState == Status.Granted){
-            emit PatentExtensionApproved(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
+            emit PatentExtensionApproved(_patentId, currentPatent.owner, currentPatent.expirationDate);
         } else {
-            emit PatentExtensionRejected(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
+            emit PatentExtensionRejected(_patentId, currentPatent.owner, currentPatent.expirationDate);
         }
 
     }
 
 
     function handlePatentState(bytes32 _patentId, Status _newPatentStatus) external onlyAdmin {
-        require(patents[_patentId].status == Status.Pending, "Patent is not in Pending state.");
-        patents[_patentId].status = _newPatentStatus;
+        Patent memory currentPatent = _getPatentById(_patentId);
+        uint256 currentPatentIndex = _getPatentIndexById(_patentId);
+
+
+        require(currentPatent.status == Status.Pending, "Patent is not in Pending state.");
+        currentPatent.status = _newPatentStatus;
+        _setPatentAtIndex(currentPatentIndex, currentPatent);
 
         if(_newPatentStatus == Status.Granted){
-            emit PatentGranted(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
+            emit PatentGranted(_patentId, currentPatent.owner, currentPatent.expirationDate);
         } else {
-            emit PatentRevoked(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
+            emit PatentRevoked(_patentId, currentPatent.owner, currentPatent.expirationDate);
         }
 
     }
 
     function extendExpirationDateOfPatent(bytes32 _patentId) external onlyAdmin {
-        require(patents[_patentId].status == Status.Granted, "Patent not granted.");
-        require(patents[_patentId].expirationExtension == Status.Pending, "Patent extension not in Pending state.");
-        require(patents[_patentId].expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
-        patents[_patentId].expirationDate += EXNTENSION_DURATION;
+        Patent memory currentPatent = _getPatentById(_patentId);
+        uint256 currentPatentIndex = _getPatentIndexById(_patentId);
 
-        emit PatentExtended(_patentId, patents[_patentId].owner, patents[_patentId].expirationDate);
+        require(currentPatent.status == Status.Granted, "Patent not granted.");
+        require(currentPatent.expirationExtension == Status.Pending, "Patent extension not in Pending state.");
+        require(currentPatent.expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
+        currentPatent.expirationDate += EXNTENSION_DURATION;
+        _setPatentAtIndex(currentPatentIndex, currentPatent);
+
+        emit PatentExtended(_patentId, currentPatent.owner, currentPatent.expirationDate);
     }
 
 

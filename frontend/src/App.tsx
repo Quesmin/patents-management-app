@@ -7,9 +7,11 @@ import NotFound from "./features/NotFound/NotFound";
 import User from "./features/User/User";
 import AuthRoute from "./navigation/AuthRoute";
 import AdminRoute from "./navigation/AdminRoute";
+import useEthereumListener from "./hooks/useEthereumListener";
+import Patent from "./features/Patent/Patent";
 
 function App() {
-    const [count, setCount] = useState(0);
+    useEthereumListener();
 
     return (
         <Routes>
@@ -19,6 +21,15 @@ function App() {
                 element={
                     <AdminRoute>
                         <Admin />
+                    </AdminRoute>
+                }
+            />
+
+            <Route
+                path="/admin/:address"
+                element={
+                    <AdminRoute>
+                        <Patent />
                     </AdminRoute>
                 }
             />

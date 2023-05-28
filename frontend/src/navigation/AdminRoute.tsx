@@ -1,44 +1,19 @@
 import React from "react";
-import { useAccount, useContractRead } from "wagmi";
-import PatentManagement from "../abis/PatentManagement.json";
 import { Navigate } from "react-router-dom";
-import { MANAGMENT_CONTRACT_ADDRESS } from "../utils/constants";
+import { useAppSelector } from "../state/store";
 
 type AdminRouteProps = React.PropsWithChildren;
 
 const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-    const {
-        isConnected,
-        status,
-        address: currentAccountAddress,
-    } = useAccount();
-    console.log("🚀 ~ file: AuthRoute.tsx:17 ~ status:", status);
-    const { data: adminAddress, isLoading: isLoadingAdminAddress } =
-        useContractRead({
-            address: MANAGMENT_CONTRACT_ADDRESS,
-            abi: PatentManagement.abi,
-            functionName: "admin",
-        });
+    const currentAccount = useAppSelector(
+        (store) => store.account.currentAccount
+    );
 
-    if (
-        status === "connecting" ||
-        status === "reconnecting" ||
-        isLoadingAdminAddress
-    ) {
-        return <h1>Loading connecting...</h1>;
-    }
-
-    // if (isAdminRoute) {
-    // if (isLoadingAdminAddress) {
-    //     return <h1>Loading admin connecting...</h1>;
-    // }
-
-    if (currentAccountAddress === adminAddress) {
+    if (currentAccount?.isAdmin) {
         return <>{children}</>;
     }
-    // }
 
-    if (!!currentAccountAddress && isConnected) {
+    if (currentAccount) {
         return <Navigate to="/user" />;
     }
 

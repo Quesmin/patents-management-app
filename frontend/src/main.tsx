@@ -12,6 +12,10 @@ import { MetaMaskConnector } from "wagmi/connectors/metaMask";
 import { publicProvider } from "wagmi/providers/public";
 import { InjectedConnector } from "wagmi/connectors/injected";
 
+BigInt.prototype.toJSON = function (): string {
+    return this.toString();
+};
+
 const { chains, publicClient, webSocketPublicClient } = configureChains(
     [hardhat],
     [publicProvider()]

@@ -314,7 +314,7 @@ contract PatentManagement {
 
 
         require(currentPatent.expirationExtension == Status.NotStarted, "Patent extension already requested.");
-        currentPatent.status = Status.Pending;
+        currentPatent.expirationExtension = Status.Pending;
         _setPatentAtIndex(currentPatentIndex, currentPatent);
 
 
@@ -331,14 +331,19 @@ contract PatentManagement {
 
         require(currentPatent.expirationExtension == Status.Pending, "Patent is not in requested state.");
 
-        currentPatent.expirationExtension = _newExtensionState;
-        _setPatentAtIndex(currentPatentIndex, currentPatent);
-
         if(_newExtensionState == Status.Granted){
+
+            require(currentPatent.expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
+
+            currentPatent.expirationDate += EXNTENSION_DURATION;
+
             emit PatentExtensionApproved(_patentId, currentPatent.owner, currentPatent.expirationDate);
         } else {
             emit PatentExtensionRejected(_patentId, currentPatent.owner, currentPatent.expirationDate);
         }
+
+        currentPatent.expirationExtension = _newExtensionState;
+        _setPatentAtIndex(currentPatentIndex, currentPatent);
 
     }
 
@@ -348,7 +353,6 @@ contract PatentManagement {
         uint256 currentPatentIndex = _getPatentIndexById(_patentId);
 
 
-        require(currentPatent.status == Status.Pending, "Patent is not in Pending state.");
         currentPatent.status = _newPatentStatus;
         _setPatentAtIndex(currentPatentIndex, currentPatent);
 
@@ -360,18 +364,18 @@ contract PatentManagement {
 
     }
 
-    function extendExpirationDateOfPatent(bytes32 _patentId) external onlyAdmin {
-        Patent memory currentPatent = _getPatentById(_patentId);
-        uint256 currentPatentIndex = _getPatentIndexById(_patentId);
+    // function extendExpirationDateOfPatent(bytes32 _patentId) external onlyAdmin {
+    //     Patent memory currentPatent = _getPatentById(_patentId);
+    //     uint256 currentPatentIndex = _getPatentIndexById(_patentId);
 
-        require(currentPatent.status == Status.Granted, "Patent not granted.");
-        require(currentPatent.expirationExtension == Status.Pending, "Patent extension not in Pending state.");
-        require(currentPatent.expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
-        currentPatent.expirationDate += EXNTENSION_DURATION;
-        _setPatentAtIndex(currentPatentIndex, currentPatent);
+    //     require(currentPatent.status == Status.Granted, "Patent not granted.");
+    //     require(currentPatent.expirationExtension == Status.Pending, "Patent extension not in Pending state.");
+    //     require(currentPatent.expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
+    //     currentPatent.expirationDate += EXNTENSION_DURATION;
+    //     _setPatentAtIndex(currentPatentIndex, currentPatent);
 
-        emit PatentExtended(_patentId, currentPatent.owner, currentPatent.expirationDate);
-    }
+    //     emit PatentExtended(_patentId, currentPatent.owner, currentPatent.expirationDate);
+    // }
 
 
   

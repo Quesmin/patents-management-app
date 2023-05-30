@@ -6,11 +6,12 @@ import { BrowserRouter } from "react-router-dom";
 import { WagmiConfig, configureChains, createConfig } from "wagmi";
 import { createPublicClient, http } from "viem";
 import { Provider } from "react-redux";
-import { store } from "./state/store.ts";
+import { persistor, store } from "./state/store.ts";
 import { hardhat, localhost } from "wagmi/chains";
 import { MetaMaskConnector } from "wagmi/connectors/metaMask";
 import { publicProvider } from "wagmi/providers/public";
 import { InjectedConnector } from "wagmi/connectors/injected";
+import { PersistGate } from "redux-persist/integration/react";
 
 BigInt.prototype.toJSON = function (): string {
     return this.toString();
@@ -33,19 +34,20 @@ const { chains, publicClient, webSocketPublicClient } = configureChains(
 
 const config = createConfig({
     autoConnect: true,
-    connectors: [new InjectedConnector({ chains })],
     publicClient,
     webSocketPublicClient,
 });
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
-        <Provider store={store}>
-            <WagmiConfig config={config}>
-                <BrowserRouter>
-                    <App />
-                </BrowserRouter>
-            </WagmiConfig>
-        </Provider>
+        <PersistGate loading={<h1>Loading ...</h1>} persistor={persistor}>
+            <Provider store={store}>
+                <WagmiConfig config={config}>
+                    <BrowserRouter>
+                        <App />
+                    </BrowserRouter>
+                </WagmiConfig>
+            </Provider>
+        </PersistGate>
     </React.StrictMode>
 );

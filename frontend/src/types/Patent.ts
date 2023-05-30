@@ -1,7 +1,7 @@
 import { State } from "./Common";
 
 export interface BlockchainPatent {
-    expirationDate: bigint;
+    expirationDate: string;
     expirationExtension: State;
     id: string;
     licensees: string[];

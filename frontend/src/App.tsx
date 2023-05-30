@@ -9,9 +9,11 @@ import AuthRoute from "./navigation/AuthRoute";
 import AdminRoute from "./navigation/AdminRoute";
 import useEthereumListener from "./hooks/useEthereumListener";
 import Patent from "./features/Patent/Patent";
+import useInitMetamaskConnection from "./hooks/useInitMetamaskConnection";
 
 function App() {
     useEthereumListener();
+    useInitMetamaskConnection();
 
     return (
         <Routes>
@@ -26,11 +28,19 @@ function App() {
             />
 
             <Route
-                path="/admin/:address"
+                path="/admin/:id"
                 element={
                     <AdminRoute>
                         <Patent />
                     </AdminRoute>
+                }
+            />
+            <Route
+                path="/user/:id"
+                element={
+                    <AuthRoute>
+                        <Patent />
+                    </AuthRoute>
                 }
             />
             <Route
@@ -41,6 +51,7 @@ function App() {
                     </AuthRoute>
                 }
             />
+            <Route path="/not-found" element={<NotFound />} />
             <Route path="*" element={<NotFound />} />
         </Routes>
     );

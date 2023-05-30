@@ -5,4 +5,5 @@ export interface CurrentAccount {
 
 export interface AccountState {
     currentAccount?: CurrentAccount;
+    isMetamaskConnected: boolean;
 }

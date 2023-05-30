@@ -1,5 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { setCurrentAccountCaseReducer } from "./reducers";
+import {
+    loginCaseReducer,
+    logoutCaseReducer,
+    setCurrentAccountCaseReducer,
+} from "./reducers";
 import { accountInitialState } from "./state";
 
 export const accountReducerSlice = createSlice({
@@ -7,7 +11,9 @@ export const accountReducerSlice = createSlice({
     initialState: accountInitialState,
     reducers: {
         setCurrentAccount: setCurrentAccountCaseReducer,
+        login: loginCaseReducer,
+        logout: logoutCaseReducer,
     },
 });
 
-export const { setCurrentAccount } = accountReducerSlice.actions;
+export const { setCurrentAccount, login, logout } = accountReducerSlice.actions;

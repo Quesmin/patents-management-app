@@ -1,18 +1,15 @@
-import { Navigate } from "react-router-dom";
-import { useAccount, useConnect, useContractRead } from "wagmi";
-import { InjectedConnector } from "wagmi/connectors/injected";
-import { MANAGEMENT_CONTRACT_ADDRESS } from "../../utils/constants";
-import PatentManagement from "./../../abis/PatentManagement.json";
 import React from "react";
+import { Navigate } from "react-router-dom";
+import { useAccount, useContractRead } from "wagmi";
+import { login, setCurrentAccount } from "../../state/account/slice";
 import { useAppDispatch, useAppSelector } from "../../state/store";
 import { CurrentAccount } from "../../types/Account";
-import { setCurrentAccount } from "../../state/account/slice";
+import { MANAGEMENT_CONTRACT_ADDRESS } from "../../utils/constants";
+import PatentManagement from "./../../abis/PatentManagement.json";
 
 const Landing = () => {
     const dispatch = useAppDispatch();
-    const currentAccount = useAppSelector(
-        (store) => store.account.currentAccount
-    );
+    const accountState = useAppSelector((store) => store.account);
     const { address, isConnected } = useAccount();
     const { data: adminAddress, isLoading: isLoadingAdminAddress } =
         useContractRead({
@@ -21,12 +18,8 @@ const Landing = () => {
             functionName: "admin",
         });
 
-    const { connect } = useConnect({
-        connector: new InjectedConnector(),
-    });
-
     React.useEffect(() => {
-        if (isConnected && address) {
+        if (isConnected && address && accountState.isMetamaskConnected) {
             const newCurrentAccount: CurrentAccount = {
                 address: address,
                 isAdmin: adminAddress === address,
@@ -34,7 +27,13 @@ const Landing = () => {
 
             dispatch(setCurrentAccount(newCurrentAccount));
         }
-    }, [address, adminAddress, dispatch, isConnected]);
+    }, [
+        accountState.isMetamaskConnected,
+        address,
+        adminAddress,
+        dispatch,
+        isConnected,
+    ]);
 
     if (isLoadingAdminAddress) {
         return <h1>Loading...</h1>;
@@ -43,14 +42,20 @@ const Landing = () => {
     return (
         <>
             <div>Landing</div>
-            {currentAccount ? (
-                currentAccount.isAdmin ? (
+            {accountState.currentAccount ? (
+                accountState.currentAccount.isAdmin ? (
                     <Navigate to="/admin" />
                 ) : (
                     <Navigate to="/user" />
                 )
             ) : (
-                <button onClick={() => connect()}>Connect Wallet</button>
+                <button
+                    onClick={() => {
+                        dispatch(login(undefined));
+                    }}
+                >
+                    Connect Wallet
+                </button>
             )}
         </>
     );

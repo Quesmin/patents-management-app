@@ -1,14 +1,15 @@
 import { useEffect } from "react";
 import { useContractRead } from "wagmi";
 import PatentManagement from "../abis/PatentManagement.json";
-import { setCurrentAccount } from "../state/account/slice";
-import { useAppDispatch } from "../state/store";
+import { login, logout } from "../state/account/slice";
+import { useAppDispatch, useAppSelector } from "../state/store";
 import { CurrentAccount } from "../types/Account";
 import { MANAGEMENT_CONTRACT_ADDRESS } from "../utils/constants";
+import { setPatents } from "../state/patents/slice";
 
-// Custom hook to listen for Ethereum account, chain, or network changes
 const useEthereumListener = () => {
     const dispatch = useAppDispatch();
+    const accountState = useAppSelector((state) => state.account);
     const { data: adminAddress } = useContractRead({
         address: MANAGEMENT_CONTRACT_ADDRESS,
         abi: PatentManagement.abi,
@@ -19,8 +20,9 @@ const useEthereumListener = () => {
         const handleAccountsChanged = (accounts: string[]) => {
             const updatedAccount = accounts[0] || undefined;
 
-            if (!updatedAccount) {
-                dispatch(setCurrentAccount(undefined));
+            if (!updatedAccount || !accountState.isMetamaskConnected) {
+                dispatch(setPatents([]));
+                dispatch(logout());
             } else {
                 const stateCurrentAccount: CurrentAccount = {
                     address: updatedAccount,
@@ -28,12 +30,13 @@ const useEthereumListener = () => {
                         (adminAddress as string).toLocaleLowerCase() ===
                         updatedAccount,
                 };
-                dispatch(setCurrentAccount(stateCurrentAccount));
+                dispatch(login(stateCurrentAccount));
             }
         };
 
         const handleChainChanged = (_chainId: string) => {
-            dispatch(setCurrentAccount(undefined));
+            dispatch(setPatents([]));
+            dispatch(logout(undefined));
             window.location.reload();
         };
 
@@ -54,7 +57,7 @@ const useEthereumListener = () => {
                 );
             }
         };
-    }, [adminAddress, dispatch]);
+    }, [accountState.isMetamaskConnected, adminAddress, dispatch]);
 };
 
 export default useEthereumListener;

@@ -12,7 +12,6 @@ contract Royalty is Pausable, Ownable {
     uint256 public expirationDate;
     uint256 public paidUntil;
     bool public approvedForDestroy;
-    // bool public approvedForRoyalty;
     bytes32 public patentId;
 
     event RoyaltyContractApprovedForDestroy(bytes32 indexed patentId, address indexed owner, address licensee, address indexed contractAddress);
@@ -46,16 +45,16 @@ contract Royalty is Pausable, Ownable {
         return (patentId, patentOwner, licensee, royaltyFee, paymentInterval, expirationDate, paidUntil, approvedForDestroy, paused());
     }
 
-    function approveForDestroy() external whenNotPaused {
-        require(msg.sender == licensee, "Only licensee can approve for destroy.");
-        approvedForDestroy = true;
+    // function approveForDestroy() external whenNotPaused {
+    //     require(msg.sender == licensee, "Only licensee can approve for destroy.");
+    //     approvedForDestroy = true;
 
-        emit RoyaltyContractApprovedForDestroy(patentId, patentOwner, licensee, address(this));
-    }
+    //     emit RoyaltyContractApprovedForDestroy(patentId, patentOwner, licensee, address(this));
+    // }
 
-    function getLicenseeApprovalForDestroy() external onlyOwner whenNotPaused view returns (bool) {
-        return approvedForDestroy;
-    }
+    // function getLicenseeApprovalForDestroy() external onlyOwner whenNotPaused view returns (bool) {
+    //     return approvedForDestroy;
+    // }
 
     function payRoyalty() public whenNotPaused payable{
         require(msg.sender == licensee, "Only licensee can pay the royalty.");

@@ -62,7 +62,7 @@ describe("PatentManagement", function () {
         });
     });
 
-    describe("getPatentData", function () {
+    describe.skip("getPatentData", function () {
         let patentId: string;
 
         beforeEach(async function () {

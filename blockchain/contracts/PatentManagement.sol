@@ -102,30 +102,30 @@ contract PatentManagement {
 
     }
 
-    function _getPatentByOwner(address _owner) internal view returns (Patent memory) {
+    // function _getPatentByOwner(address _owner) internal view returns (Patent memory) {
 
-        for(uint256 i = 0; i < patents.length; i++) {
-            if(patents[i].owner == _owner){
-                return patents[i];
-            }
-        }
+    //     for(uint256 i = 0; i < patents.length; i++) {
+    //         if(patents[i].owner == _owner){
+    //             return patents[i];
+    //         }
+    //     }
 
-        revert("Patent index not found");
-    }
+    //     revert("Patent index not found");
+    // }
 
     
 
-    function _removeBytes32ValueFromArray(bytes32[] storage arr, bytes32 value) internal {
-        for (uint256 i = 0; i < arr.length; i++) {
-            if (arr[i] == value) {
-                if (i != arr.length - 1) {
-                    arr[i] = arr[arr.length - 1];
-                }
-                arr.pop();
-                return;
-            }
-        }
-    }
+    // function _removeBytes32ValueFromArray(bytes32[] storage arr, bytes32 value) internal {
+    //     for (uint256 i = 0; i < arr.length; i++) {
+    //         if (arr[i] == value) {
+    //             if (i != arr.length - 1) {
+    //                 arr[i] = arr[arr.length - 1];
+    //             }
+    //             arr.pop();
+    //             return;
+    //         }
+    //     }
+    // }
 
     function _removeAddressValueFromArray(address[] memory arr, address value) internal pure returns(address[] memory) {
         uint256 indexToRemove = 0;
@@ -215,10 +215,10 @@ contract PatentManagement {
     }
 
 
-    function getPatentData(bytes32 _patentId) public view returns (bytes32, string memory, string memory, address, address[] memory, uint256, Status, Status) {
-        Patent memory patent = _getPatentById(_patentId);
-        return (patent.id, patent.title, patent.ipfsHash, patent.owner, patent.licensees, patent.expirationDate, patent.expirationExtension, patent.status);
-    }
+    // function getPatentData(bytes32 _patentId) public view returns (bytes32, string memory, string memory, address, address[] memory, uint256, Status, Status) {
+    //     Patent memory patent = _getPatentById(_patentId);
+    //     return (patent.id, patent.title, patent.ipfsHash, patent.owner, patent.licensees, patent.expirationDate, patent.expirationExtension, patent.status);
+    // }
 
     function getContractForLicensee(bytes32 _patentId, address _licensee) public view returns (RoyaltyContractData memory) {
         require(_contains(_licensee, _getPatentById(_patentId).licensees), "Licensee not found for this patent.");
@@ -351,28 +351,28 @@ contract PatentManagement {
 
   
 
-    function destroyRoyaltyContract(bytes32 _patentId, address _licensee) external onlyPatentOwner(_patentId) {
-        Patent memory currentPatent = _getPatentById(_patentId);
-        uint256 currentPatentIndex = _getPatentIndexById(_patentId);
+    // function destroyRoyaltyContract(bytes32 _patentId, address _licensee) external onlyPatentOwner(_patentId) {
+    //     Patent memory currentPatent = _getPatentById(_patentId);
+    //     uint256 currentPatentIndex = _getPatentIndexById(_patentId);
 
 
-        require(currentPatent.status == Status.Granted, "Patent not granted.");
+    //     require(currentPatent.status == Status.Granted, "Patent not granted.");
 
-        address royaltyContractAddress = lincesedOrgRoyaltyContract[_patentId][_licensee];
-        require(royaltyContractAddress != address(0), "Royalty contract does not exist");
+    //     address royaltyContractAddress = lincesedOrgRoyaltyContract[_patentId][_licensee];
+    //     require(royaltyContractAddress != address(0), "Royalty contract does not exist");
 
-        Royalty royaltyContract = Royalty(payable(royaltyContractAddress));
-        require(royaltyContract.getLicenseeApprovalForDestroy(), "Licensee has not approved the destruction of the royalty contract");
-
-
-        royaltyContract.destroySmartContract();
-        delete lincesedOrgRoyaltyContract[_patentId][_licensee];
-        currentPatent.licensees = _removeAddressValueFromArray(currentPatent.licensees, _licensee);
-        _setPatentAtIndex(currentPatentIndex, currentPatent);
+    //     Royalty royaltyContract = Royalty(payable(royaltyContractAddress));
+    //     require(royaltyContract.getLicenseeApprovalForDestroy(), "Licensee has not approved the destruction of the royalty contract");
 
 
-        emit RoyaltyContractDestroyed(_patentId, _licensee, royaltyContractAddress);
-    }
+    //     royaltyContract.destroySmartContract();
+    //     delete lincesedOrgRoyaltyContract[_patentId][_licensee];
+    //     currentPatent.licensees = _removeAddressValueFromArray(currentPatent.licensees, _licensee);
+    //     _setPatentAtIndex(currentPatentIndex, currentPatent);
+
+
+    //     emit RoyaltyContractDestroyed(_patentId, _licensee, royaltyContractAddress);
+    // }
 
     function checkValidityOfRoyaltyContract(bytes32 _patentId, address _licensee) external onlyPatentOwner(_patentId) {
         Patent memory currentPatent = _getPatentById(_patentId);
@@ -455,20 +455,4 @@ contract PatentManagement {
         }
 
     }
-
-    // function extendExpirationDateOfPatent(bytes32 _patentId) external onlyAdmin {
-    //     Patent memory currentPatent = _getPatentById(_patentId);
-    //     uint256 currentPatentIndex = _getPatentIndexById(_patentId);
-
-    //     require(currentPatent.status == Status.Granted, "Patent not granted.");
-    //     require(currentPatent.expirationExtension == Status.Pending, "Patent extension not in Pending state.");
-    //     require(currentPatent.expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
-    //     currentPatent.expirationDate += EXNTENSION_DURATION;
-    //     _setPatentAtIndex(currentPatentIndex, currentPatent);
-
-    //     emit PatentExtended(_patentId, currentPatent.owner, currentPatent.expirationDate);
-    // }
-
-
-  
 }

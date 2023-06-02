@@ -257,7 +257,9 @@ contract PatentManagement {
     function getAllContractsForPatent(bytes32 _patentId) public view returns (RoyaltyContractData[] memory) {
 
         Patent memory currentPatent = _getPatentById(_patentId);
-        require(currentPatent.status == Status.Granted, "Patent not granted.");
+        if(currentPatent.status != Status.Granted){
+            return new RoyaltyContractData[](0);
+        }
 
         address[] memory licenseesArr = currentPatent.licensees;
         if(licenseesArr.length == 0){

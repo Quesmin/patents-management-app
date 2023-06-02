@@ -4,14 +4,14 @@ import PatentManagement from "../abis/PatentManagement.json";
 import { login, logout } from "../state/account/slice";
 import { useAppDispatch, useAppSelector } from "../state/store";
 import { CurrentAccount } from "../types/Account";
-import { MANAGEMENT_CONTRACT_ADDRESS } from "../utils/constants";
 import { setPatents } from "../state/patents/slice";
+import config from "../../config";
 
 const useEthereumListener = () => {
     const dispatch = useAppDispatch();
     const accountState = useAppSelector((state) => state.account);
     const { data: adminAddress } = useContractRead({
-        address: MANAGEMENT_CONTRACT_ADDRESS,
+        address: config.PATENT_MANAGEMENT_CONTRACT_ADDRESS,
         abi: PatentManagement.abi,
         functionName: "admin",
     });

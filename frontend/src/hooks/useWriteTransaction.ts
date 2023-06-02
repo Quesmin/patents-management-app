@@ -2,7 +2,7 @@ import { parseEther } from "viem";
 import { useContractWrite, usePrepareContractWrite } from "wagmi";
 import { AbiItem } from "web3-utils";
 import PatentManagement from "../abis/PatentManagement.json";
-import { MANAGEMENT_CONTRACT_ADDRESS } from "../utils/constants";
+import config from "../../config";
 
 const PatentManagementAbi = [...(PatentManagement.abi as AbiItem[])] as const;
 // const RoyaltyAbi = [...Royalty.abi] as const;
@@ -25,8 +25,8 @@ const useWriteTransaction = (
 ) => {
     const currentAbi = abiMap[contractAbi];
 
-    const { config } = usePrepareContractWrite({
-        address: MANAGEMENT_CONTRACT_ADDRESS,
+    const { config: contractConfig } = usePrepareContractWrite({
+        address: config.PATENT_MANAGEMENT_CONTRACT_ADDRESS,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         //@ts-ignore
         abi: currentAbi,
@@ -48,7 +48,7 @@ const useWriteTransaction = (
         writeAsync: transactionWriteAsync,
         reset: transactionReset,
         status: transactionStatus,
-    } = useContractWrite(config);
+    } = useContractWrite(contractConfig);
 
     return {
         transactionData,

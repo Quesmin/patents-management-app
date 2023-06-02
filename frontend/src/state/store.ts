@@ -6,7 +6,8 @@ import { persistReducer, persistStore } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import { Reducer } from "react";
 import { AccountState } from "../types/Account";
-import { PatentState } from "../types/Patent";
+import { LicensedState, PatentState } from "../types/Patent";
+import { licensedReducerSlice } from "./licensed/slice";
 
 const accountPersistConfig = {
     key: "account",
@@ -15,6 +16,11 @@ const accountPersistConfig = {
 
 const patentsPersistConfig = {
     key: "patent",
+    storage,
+};
+
+const licensedPersistConfig = {
+    key: "licensedPatent",
     storage,
 };
 
@@ -27,6 +33,10 @@ export const store = configureStore({
         [patentReducerSlice.name]: persistReducer<PatentState>(
             patentsPersistConfig,
             patentReducerSlice.reducer
+        ),
+        [licensedReducerSlice.name]: persistReducer<LicensedState>(
+            licensedPersistConfig,
+            licensedReducerSlice.reducer
         ),
     },
     middleware: (getDefaultMiddleware) =>

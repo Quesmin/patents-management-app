@@ -4,7 +4,7 @@ import { useAccount, useContractRead } from "wagmi";
 import { login, setCurrentAccount } from "../../state/account/slice";
 import { useAppDispatch, useAppSelector } from "../../state/store";
 import { CurrentAccount } from "../../types/Account";
-import { MANAGEMENT_CONTRACT_ADDRESS } from "../../utils/constants";
+import config from "./../../../config";
 import PatentManagement from "./../../abis/PatentManagement.json";
 
 const Landing = () => {
@@ -13,7 +13,7 @@ const Landing = () => {
     const { address, isConnected } = useAccount();
     const { data: adminAddress, isLoading: isLoadingAdminAddress } =
         useContractRead({
-            address: MANAGEMENT_CONTRACT_ADDRESS,
+            address: config.PATENT_MANAGEMENT_CONTRACT_ADDRESS,
             abi: PatentManagement.abi,
             functionName: "admin",
         });

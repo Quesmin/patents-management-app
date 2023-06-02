@@ -9,7 +9,7 @@ contract Royalty is Pausable, Ownable {
     address payable public patentOwner;
     uint256 public royaltyFee;
     uint256 public paymentInterval;
-    uint256 public expirationPeriod;
+    uint256 public expirationDate;
     uint256 public paidUntil;
     bool public approvedForDestroy;
     // bool public approvedForRoyalty;
@@ -19,22 +19,31 @@ contract Royalty is Pausable, Ownable {
     event RoyaltyPaid(bytes32 indexed patentId, address indexed contractAddress, address indexed licensee, uint256 royaltyFee, uint256 paidUntil );
 
     
-    constructor(bytes32 _patentId, address _licensee, uint256 _royaltyFee, uint256 _paymentInterval, uint256 _expirationPeriod, address payable _patentOwner) Pausable() Ownable() {
+    constructor(bytes32 _patentId, address _licensee, uint256 _royaltyFee, uint256 _paymentInterval, uint256 _expirationDate, address payable _patentOwner) Pausable() Ownable() {
         patentId = _patentId;
         licensee = _licensee;
         royaltyFee = _royaltyFee;
         paymentInterval = _paymentInterval;
-        expirationPeriod = block.timestamp + _expirationPeriod;
+        expirationDate = _expirationDate;
         paidUntil = block.timestamp + _paymentInterval;
 
         _pause();
         approvedForDestroy = false;
-        // approvedForRoyalty = false;
         patentOwner = _patentOwner;
     }
 
+   
+
     function approveForRoyalty() external onlyOwner whenPaused{
         _unpause();
+    }
+
+    function getIsPaused() external onlyOwner view returns (bool) {
+        return paused();
+    }
+
+    function getContractInfo() external onlyOwner view returns (bytes32, address, address, uint256, uint256, uint256, uint256, bool, bool) {
+        return (patentId, patentOwner, licensee, royaltyFee, paymentInterval, expirationDate, paidUntil, approvedForDestroy, paused());
     }
 
     function approveForDestroy() external whenNotPaused {
@@ -48,10 +57,10 @@ contract Royalty is Pausable, Ownable {
         return approvedForDestroy;
     }
 
-    function payRoyalty() external whenNotPaused payable{
+    function payRoyalty() public whenNotPaused payable{
         require(msg.sender == licensee, "Only licensee can pay the royalty.");
         require(msg.value == royaltyFee, "Incorrect fee value.");
-        require(paidUntil + paymentInterval <= expirationPeriod, "The payment extension interval exceeds expiration date.");
+        require(paidUntil + paymentInterval <= expirationDate, "The payment extension interval exceeds expiration date.");
 
         patentOwner.transfer(msg.value);
         paidUntil = paidUntil + paymentInterval;
@@ -59,8 +68,8 @@ contract Royalty is Pausable, Ownable {
         emit RoyaltyPaid(patentId, address(this), licensee, royaltyFee, paidUntil);
     }
 
-    function getIsContractValid() external onlyOwner whenNotPaused view returns (bool) {
-        if(block.timestamp > expirationPeriod){
+    function getIsContractValid() external onlyOwner view returns (bool) {
+        if(block.timestamp > expirationDate){
             return false;
         }
 
@@ -73,5 +82,9 @@ contract Royalty is Pausable, Ownable {
 
     function destroySmartContract() external onlyOwner whenNotPaused {
         _pause();
+    }
+
+    receive() external payable {
+        payRoyalty();
     }
 }

@@ -12,6 +12,7 @@
   "dependencies": {
     "@metamask/providers": "^11.0.0",
     "@reduxjs/toolkit": "^1.9.5",
+    "axios": "^1.4.0",
     "moment": "^2.29.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -20,6 +21,7 @@
     "redux-persist": "^6.0.0",
     "viem": "^0.3.37",
     "wagmi": "^1.0.8",
+    "web3": "^1.10.0",
     "web3-utils": "^1.10.0"
   },
   "devDependencies": {

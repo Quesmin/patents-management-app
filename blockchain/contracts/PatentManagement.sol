@@ -20,12 +20,32 @@ contract PatentManagement {
     struct Patent {
         bytes32 id;
         string title;
+        string ipfsHash;
         address owner;
         address[] licensees;
         uint256 expirationDate;
         Status expirationExtension;
         Status status;
     }
+
+    struct RoyaltyContractData {
+        bytes32 patentId;
+        address contractAddress;
+        address patentOwner;
+        address licensee;
+        uint256 royaltyFee;
+        uint256 paymentInterval;
+        uint256 expirationDate;
+        uint256 paidUntil;
+        bool approvedForDestroy;
+        bool paused;
+    }
+
+    struct LicenseDataForPatent {
+        bytes32 patentId;
+        RoyaltyContractData[] royaltyContractsData;
+    }
+
 
 
     mapping(bytes32 => mapping(address => address)) lincesedOrgRoyaltyContract;
@@ -92,6 +112,8 @@ contract PatentManagement {
 
         revert("Patent index not found");
     }
+
+    
 
     function _removeBytes32ValueFromArray(bytes32[] storage arr, bytes32 value) internal {
         for (uint256 i = 0; i < arr.length; i++) {
@@ -193,24 +215,85 @@ contract PatentManagement {
     }
 
 
-    function getPatentData(bytes32 _patentId) public view returns (bytes32, string memory, address, address[] memory, uint256, Status, Status) {
+    function getPatentData(bytes32 _patentId) public view returns (bytes32, string memory, string memory, address, address[] memory, uint256, Status, Status) {
         Patent memory patent = _getPatentById(_patentId);
-        return (patent.id, patent.title, patent.owner, patent.licensees, patent.expirationDate, patent.expirationExtension, patent.status);
+        return (patent.id, patent.title, patent.ipfsHash, patent.owner, patent.licensees, patent.expirationDate, patent.expirationExtension, patent.status);
     }
 
-    function getContractAddressForLicensee(bytes32 _patentId, address _licensee) public view returns (address) {
-        return lincesedOrgRoyaltyContract[_patentId][_licensee];
+    function getContractForLicensee(bytes32 _patentId, address _licensee) public view returns (RoyaltyContractData memory) {
+        require(_contains(_licensee, _getPatentById(_patentId).licensees), "Licensee not found for this patent.");
+        require(lincesedOrgRoyaltyContract[_patentId][_licensee] != address(0), "Royalty contract does not exist.");
+        Royalty royaltyContract = Royalty(payable(lincesedOrgRoyaltyContract[_patentId][_licensee]));
+
+
+        (
+            bytes32 patentId,
+            address patentOwner,
+            address licensee,
+            uint256 royaltyFee,
+            uint256 paymentInterval,
+            uint256 expirationDate,
+            uint256 paidUntil,
+            bool approvedForDestroy,
+            bool paused
+        ) = royaltyContract.getContractInfo();
+        
+        RoyaltyContractData memory royaltyContractData;
+
+        royaltyContractData.patentId = patentId;
+        royaltyContractData.contractAddress = lincesedOrgRoyaltyContract[_patentId][_licensee];
+        royaltyContractData.patentOwner = patentOwner;
+        royaltyContractData.licensee = licensee;
+        royaltyContractData.royaltyFee = royaltyFee;
+        royaltyContractData.paymentInterval = paymentInterval;
+        royaltyContractData.expirationDate = expirationDate;
+        royaltyContractData.paidUntil = paidUntil;
+        royaltyContractData.approvedForDestroy = approvedForDestroy;
+        royaltyContractData.paused = paused;
+
+        return royaltyContractData;
     }
 
-    function submitDraftPatent(string memory _title) external payable {
+    function getAllContractsForPatent(bytes32 _patentId) public view returns (RoyaltyContractData[] memory) {
+
+        Patent memory currentPatent = _getPatentById(_patentId);
+        require(currentPatent.status == Status.Granted, "Patent not granted.");
+
+        address[] memory licenseesArr = currentPatent.licensees;
+        if(licenseesArr.length == 0){
+            return new RoyaltyContractData[](0);
+        }
+
+        RoyaltyContractData[] memory royaltyContractsData = new RoyaltyContractData[](licenseesArr.length);
+
+        for (uint256 i = 0; i < licenseesArr.length; i++) {
+            royaltyContractsData[i] = getContractForLicensee(_patentId, licenseesArr[i]);
+        }
+
+        return royaltyContractsData;
+    }
+
+    function getContractsForAllPatents() public view returns (LicenseDataForPatent[] memory) {
+        LicenseDataForPatent[] memory licenseDataForPatents = new LicenseDataForPatent[](patents.length);
+
+        for (uint256 i = 0; i < patents.length; i++) {
+            licenseDataForPatents[i].patentId = patents[i].id;
+            licenseDataForPatents[i].royaltyContractsData = getAllContractsForPatent(patents[i].id);
+        }
+
+        return licenseDataForPatents;
+    }
+    
+
+    function submitDraftPatent(string memory _title, string memory _ipfsHash) external payable {
         require(msg.sender != admin, "Admin cannot submit draft patent.");
         require(msg.value == DRAFT_FEE, "Incorrect draft fee");
 
-        //TODO: we might want to get the id from the FE
         bytes32 patentId = keccak256(abi.encodePacked(msg.sender, block.timestamp));
         Patent memory newPatent;
 
         newPatent.id = patentId;
+        newPatent.ipfsHash = _ipfsHash;
         newPatent.title = _title;
         newPatent.owner = msg.sender;
         newPatent.expirationDate = block.timestamp + EXPIRATION_DURATION;
@@ -232,7 +315,9 @@ contract PatentManagement {
         require(currentPatent.status == Status.Granted, "Patent not granted.");
         require(currentPatent.expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
         
-        Royalty royaltyContract = Royalty(lincesedOrgRoyaltyContract[_patentId][msg.sender]);
+        Royalty royaltyContract = Royalty(payable(lincesedOrgRoyaltyContract[_patentId][msg.sender]));
+        require(royaltyContract.getIsContractValid() && royaltyContract.getIsPaused(), "Royalty contract is not in pending for approval state.");
+
         royaltyContract.approveForRoyalty();
         
         emit RoyaltyContractApproved(_patentId, lincesedOrgRoyaltyContract[_patentId][msg.sender], msg.sender);
@@ -240,18 +325,25 @@ contract PatentManagement {
 
 
     //Patent Owner actions
-    function createRoyaltyContract(bytes32 _patentId, address _licensee, uint256 _royaltyFee, uint256 _paymentInterval, uint256 _contractExpirationPeriod) external onlyPatentOwner(_patentId) {
+    function createRoyaltyContract(bytes32 _patentId, address _licensee, uint256 _royaltyFee, uint256 _paymentInterval, uint256 _contractExpirationDate) external onlyPatentOwner(_patentId) {
         Patent memory currentPatent = _getPatentById(_patentId);
         uint256 currentPatentIndex = _getPatentIndexById(_patentId);
 
         require(currentPatent.status == Status.Granted, "Patent not granted.");
         require(currentPatent.expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
+        require(!_contains(_licensee, currentPatent.licensees), "Licensee already exists for this patent.");
 
-        address newRoyaltyContract = address(new Royalty(_patentId, _licensee, _royaltyFee, _paymentInterval, _contractExpirationPeriod, payable(msg.sender)));
+        address newRoyaltyContract = address(new Royalty(_patentId, _licensee, _royaltyFee, _paymentInterval, _contractExpirationDate, payable(msg.sender)));
         lincesedOrgRoyaltyContract[_patentId][_licensee] = newRoyaltyContract;
         
 
-        currentPatent.licensees[currentPatent.licensees.length + 1] = _licensee;
+        address[] memory updatedLicensees = new address[](currentPatent.licensees.length + 1);
+        for (uint256 i = 0; i < currentPatent.licensees.length; i++) {
+            updatedLicensees[i] = currentPatent.licensees[i];
+        }
+        updatedLicensees[currentPatent.licensees.length] = _licensee;
+        currentPatent.licensees = updatedLicensees;
+
         _setPatentAtIndex(currentPatentIndex, currentPatent);
 
         emit RoyaltyContractCreated(_patentId, msg.sender, _royaltyFee, _paymentInterval, _licensee, newRoyaltyContract);
@@ -269,7 +361,7 @@ contract PatentManagement {
         address royaltyContractAddress = lincesedOrgRoyaltyContract[_patentId][_licensee];
         require(royaltyContractAddress != address(0), "Royalty contract does not exist");
 
-        Royalty royaltyContract = Royalty(royaltyContractAddress);
+        Royalty royaltyContract = Royalty(payable(royaltyContractAddress));
         require(royaltyContract.getLicenseeApprovalForDestroy(), "Licensee has not approved the destruction of the royalty contract");
 
 
@@ -292,9 +384,9 @@ contract PatentManagement {
         address royaltyContractAddress = lincesedOrgRoyaltyContract[_patentId][_licensee];
         require(royaltyContractAddress != address(0), "Royalty contract does not exist");
 
-        Royalty royaltyContract = Royalty(royaltyContractAddress);
+        Royalty royaltyContract = Royalty(payable(royaltyContractAddress));
 
-        if (currentPatent.expirationDate < block.timestamp + 1 days || !royaltyContract.getIsContractValid()) {
+        if (!royaltyContract.getIsContractValid()) {
             royaltyContract.destroySmartContract();
             delete lincesedOrgRoyaltyContract[_patentId][_licensee];
 

@@ -136,14 +136,6 @@ const User = () => {
                 />
                 <button type="submit">Submit upload</button>
             </form>
-            <button
-                onClick={async () => {
-                    dispatch(setPatents([]));
-                    dispatch(logout(undefined));
-                }}
-            >
-                Disconnect
-            </button>
 
             <div>
                 <h1 style={{ paddingBottom: 20 }}>Granted</h1>

@@ -14,7 +14,7 @@ const Header: React.FC<HeaderProps> = ({ currentAccount }) => {
     const dispatch = useAppDispatch();
 
     return (
-        <div className="navbar bg-base-100 gap-4">
+        <div className="navbar bg-base-100 gap-4 px-8 rounded-box">
             <div className="flex-1">
                 <div className="normal-case text-2xl font-black">Patex</div>
             </div>
@@ -29,7 +29,7 @@ const Header: React.FC<HeaderProps> = ({ currentAccount }) => {
 
                 <ul
                     tabIndex={0}
-                    className="shadow menu menu-sm dropdown-content bg-base-200 rounded-box w-52 bg-clip-padding backdrop-filter backdrop-blur-md bg-opacity-70"
+                    className="shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-52 bg-clip-padding backdrop-filter backdrop-blur-md bg-opacity-70 border"
                 >
                     <li>
                         <a

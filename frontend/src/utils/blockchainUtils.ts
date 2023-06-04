@@ -139,3 +139,13 @@ export const removeFromIpfsCall = async (hash: string) => {
         return false;
     }
 };
+
+export const shortenAddress = (address: string, veryShort = false) => {
+    return veryShort
+        ? `${address.slice(0, 6)}...${address.slice(-4)}`.toLowerCase()
+        : `${address.slice(0, 12)}...${address.slice(-8)}`.toLowerCase();
+};
+
+export const shortPatentTitle = (title: string) => {
+    return title.length > 23 ? `${title.slice(0, 20)}...` : title;
+};

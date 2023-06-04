@@ -8,7 +8,7 @@ type AppLayoutProps = React.PropsWithChildren<{
 
 const AppLayout: React.FC<AppLayoutProps> = ({ currentAccount, children }) => {
     return (
-        <div>
+        <div className="h-full w-full">
             <Header currentAccount={currentAccount} />
             {children}
         </div>

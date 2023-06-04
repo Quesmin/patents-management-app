@@ -1,53 +1,46 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { disconnect, writeContract } from "wagmi/actions";
+import PatentCard, {
+    PatentCardColor,
+} from "../../common/PatentCard/PatentCard";
 import useBlockchainPatents from "../../hooks/useBlockchainPatents";
-import useWriteTransaction from "../../hooks/useWriteTransaction";
-import { logout, setCurrentAccount } from "../../state/account/slice";
-import { useAppDispatch, useAppSelector } from "../../state/store";
+import useLicensedPatents from "../../hooks/useLicensedPatents";
+import { useAppSelector } from "../../state/store";
 import { State } from "../../types/Common";
+import {
+    BlockchainPatent,
+    LicensedContractWithPatentData,
+    PersonalPatentsWithRoyaltyContracts,
+} from "../../types/Patent";
 import {
     areAddressesEqual,
     removeFromIpfsCall,
     submitToIpfsCall,
     writeAction,
 } from "../../utils/blockchainUtils";
-import { setPatents } from "../../state/patents/slice";
-import { ethers } from "ethers";
-import Web3 from "web3";
-import config from "../../../config";
-import { TransactionReceipt } from "viem";
-import useLicensedPatents from "../../hooks/useLicensedPatents";
 import {
+    convertUnixToDateFormat,
+    getIsContracValid,
     getLicensedPatentsAndContractsForCurrentUser,
     getPersonalGrantedPatentsWithRoyaltyContracts,
 } from "../../utils/dataUtils";
-
-export const openInNewTab = (url: string) => {
-    window.open(url, "_blank", "noreferrer");
-};
+import {
+    isBlockchainPatentArray,
+    isLicensedContractWithPatentDataArray,
+    isPersonalPatentsWithRoyaltyContractsArray,
+} from "../../utils/guardUtils";
 
 const User = () => {
     const currentAccount = useAppSelector(
         (state) => state.account.currentAccount
     );
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
-    const dispatch = useAppDispatch();
     const [patentTitle, setPatentTitle] = React.useState("");
     const [patentFile, setPatentFile] = React.useState<File | null>(null);
-    // const { transactionWrite: submitPatent } = useWriteTransaction(
-    //     [patentTitle],
-    //     "submitDraftPatent",
-    //     "3"
-    // );
+
     const blockchainPatents = useBlockchainPatents();
     const licensedPatents = useLicensedPatents();
-
-    // const myGrantedPatent = blockchainPatents.filter(
-    //     (p) =>
-    //         areAddressesEqual(p.owner, currentAccount?.address) &&
-    //         p.status === State.Granted
-    // );
 
     const myGrantedPatentsWithContracts =
         getPersonalGrantedPatentsWithRoyaltyContracts(
@@ -55,10 +48,7 @@ const User = () => {
             licensedPatents,
             currentAccount?.address
         );
-    console.log(
-        "🚀 ~ file: User.tsx:53 ~ User ~ myGrantedPatentsWithContracts:",
-        myGrantedPatentsWithContracts
-    );
+
     const myDraftPatents = blockchainPatents.filter(
         (p) =>
             areAddressesEqual(p.owner, currentAccount?.address) &&
@@ -99,11 +89,116 @@ const User = () => {
 
         setPatentTitle("");
         setPatentFile(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
+    const renderPatentSection = (
+        sectionTitle: string,
+        patents:
+            | BlockchainPatent[]
+            | PersonalPatentsWithRoyaltyContracts[]
+            | LicensedContractWithPatentData[],
+        patentsCardColor?: PatentCardColor
+    ) => {
+        if (patents.length === 0) {
+            return <></>;
+        }
+
+        if (isBlockchainPatentArray(patents)) {
+            return (
+                <div className="flex flex-col items-start w-full">
+                    <div className="uppercase pb-6 font-black text-base text-gray-300">
+                        {sectionTitle}
+                    </div>
+                    <div className="gap-6 pb-6 flex w-full overflow-auto">
+                        {patents.map((p) => (
+                            <PatentCard
+                                key={p.id}
+                                title={p.title}
+                                id={p.id}
+                                cardColor={patentsCardColor}
+                                expirationDate={convertUnixToDateFormat(
+                                    +p.expirationDate.toString()
+                                )}
+                                onClick={() => navigate("/user/" + p.id)}
+                            />
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+        if (isPersonalPatentsWithRoyaltyContractsArray(patents)) {
+            return (
+                <div className="flex flex-col items-start w-full">
+                    <div className="uppercase pb-6 font-black text-base text-gray-300">
+                        {sectionTitle}
+                    </div>
+                    <div className="gap-6 pb-6 flex w-full overflow-auto">
+                        {patents.map((p) => (
+                            <PatentCard
+                                key={p.patent.id}
+                                title={p.patent.title}
+                                id={p.patent.id}
+                                cardColor={patentsCardColor}
+                                expirationDate={convertUnixToDateFormat(
+                                    +p.patent.expirationDate.toString()
+                                )}
+                                onClick={() =>
+                                    navigate("/user/" + p.patent.id, {
+                                        state: {
+                                            royaltyContracts:
+                                                p.royaltyContracts,
+                                        },
+                                    })
+                                }
+                            />
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+        if (isLicensedContractWithPatentDataArray(patents)) {
+            return (
+                <div className="flex flex-col items-start w-full">
+                    <div className="uppercase pb-6 font-black text-base text-gray-300">
+                        {sectionTitle}
+                    </div>
+                    <div className="gap-6 pb-6 flex w-full overflow-auto">
+                        {patents.map((p) => (
+                            <PatentCard
+                                key={p.patent.id}
+                                title={p.patent.title}
+                                id={p.patent.id}
+                                owner={p.patent.owner}
+                                cardColor={patentsCardColor}
+                                expirationDate={convertUnixToDateFormat(
+                                    +p.expirationDate.toString()
+                                )}
+                                hasPendingRequest={
+                                    getIsContracValid(p) && p.paused
+                                }
+                                onClick={() =>
+                                    navigate("/user/" + p.patent.id, {
+                                        state: {
+                                            royaltyContract: p,
+                                        },
+                                    })
+                                }
+                            />
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        return <></>;
     };
 
     return (
-        <>
-            <div>User</div>
+        <div className="flex items-start flex-col px-8 w-full">
+            <div className=" font-bold text-2xl py-8">User Dashboard</div>
             <form
                 style={{
                     display: "flex",
@@ -122,6 +217,7 @@ const User = () => {
                 />
 
                 <input
+                    ref={fileInputRef}
                     placeholder="Patent PDF"
                     style={{ border: "1px solid black", width: "200px" }}
                     type="file"
@@ -138,112 +234,24 @@ const User = () => {
             </form>
 
             <div>
-                <h1 style={{ paddingBottom: 20 }}>Granted</h1>
-                {myGrantedPatentsWithContracts.length !== 0 && (
-                    <>
-                        {myGrantedPatentsWithContracts.map((d) => (
-                            <div
-                                key={d.patent.id}
-                                style={{
-                                    paddingBottom: 8,
-                                    border: "1px solid black",
-                                }}
-                                onClick={() =>
-                                    navigate("/user/" + d.patent.id, {
-                                        state: {
-                                            royaltyContracts:
-                                                d.royaltyContracts,
-                                        },
-                                    })
-                                }
-                            >
-                                <div>{d.patent.title}</div>
-                                <div>{d.patent.id}</div>
-                                <div>{d.patent.owner}</div>
-                                <div>{d.patent.expirationDate}</div>
-                            </div>
-                        ))}
-                    </>
+                {renderPatentSection(
+                    "Draft",
+                    myDraftPatents,
+                    PatentCardColor.Blue
                 )}
-                <h1 style={{ paddingBottom: 20 }}>Draft</h1>
-                {myDraftPatents.length !== 0 && (
-                    <>
-                        {myDraftPatents.map((d) => (
-                            <div
-                                key={d.id}
-                                style={{
-                                    paddingBottom: 8,
-                                    border: "1px solid black",
-                                }}
-                                onClick={() => navigate("/user/" + d.id)}
-                            >
-                                <div>{d.title}</div>
-                                <div>{d.id}</div>
-                                <div
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        openInNewTab(
-                                            `${config.IPFS_GATEWAY}/${d.ipfsHash}`
-                                        );
-                                    }}
-                                >
-                                    {d.ipfsHash}
-                                </div>
-                                <div>{d.owner}</div>
-                                <div>{d.expirationDate}</div>
-                            </div>
-                        ))}
-                    </>
+                {renderPatentSection(
+                    "Granted",
+                    myGrantedPatentsWithContracts,
+                    PatentCardColor.Green
                 )}
-                <h1 style={{ paddingBottom: 20 }}>Revoked</h1>
-                {myRevokedPatents.length !== 0 && (
-                    <>
-                        {myRevokedPatents.map((d) => (
-                            <div
-                                key={d.id}
-                                style={{
-                                    paddingBottom: 8,
-                                    border: "1px solid black",
-                                }}
-                                onClick={() => navigate("/user/" + d.id)}
-                            >
-                                <div>{d.title}</div>
-                                <div>{d.id}</div>
-                                <div>{d.owner}</div>
-                                <div>{d.expirationDate}</div>
-                            </div>
-                        ))}
-                    </>
+                {renderPatentSection(
+                    "Revoked",
+                    myRevokedPatents,
+                    PatentCardColor.Red
                 )}
-
-                <h1 style={{ paddingBottom: 20 }}>Licensed patents</h1>
-                {licensedPatentsWithContracts.length !== 0 && (
-                    <>
-                        {licensedPatentsWithContracts.map((d) => (
-                            <div
-                                key={d.patent.id}
-                                style={{
-                                    paddingBottom: 8,
-                                    border: "1px solid black",
-                                }}
-                                onClick={() =>
-                                    navigate("/user/" + d.patent.id, {
-                                        state: {
-                                            royaltyContract: d,
-                                        },
-                                    })
-                                }
-                            >
-                                <div>{d.patent.title}</div>
-                                <div>{d.patent.id}</div>
-                                <div>{d.patent.owner}</div>
-                                <div>{d.patent.expirationDate}</div>
-                            </div>
-                        ))}
-                    </>
-                )}
+                {renderPatentSection("Licensed", licensedPatentsWithContracts)}
             </div>
-        </>
+        </div>
     );
 };
 

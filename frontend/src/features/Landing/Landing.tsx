@@ -64,12 +64,12 @@ const Landing = () => {
                         )
                     ) : (
                         <button
-                            className="btn btn-accent capitalize font-extrabold text-xl"
+                            className="btn btn-accent normal-case font-extrabold text-xl"
                             onClick={() => {
                                 dispatch(login(undefined));
                             }}
                         >
-                            Connect With
+                            Connect with
                             <img
                                 style={{ width: 48, height: 48 }}
                                 className="w-20 h-20"
@@ -87,7 +87,7 @@ const Landing = () => {
                         width: "400px",
                         display: "inline-block",
                     }}
-                    className="absolute top-0 left-0 bg-white rounded-lg bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-25"
+                    className="absolute top-0 left-0 bg-white rounded-lg bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-30"
                 />
                 <div
                     style={{
@@ -95,7 +95,7 @@ const Landing = () => {
                         width: "400px",
                         display: "inline-block",
                     }}
-                    className="absolute top-10 left-10 bg-white rounded-lg bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-25"
+                    className="absolute top-10 left-10 bg-white rounded-lg bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-30"
                 ></div>
                 <div
                     style={{
@@ -103,7 +103,7 @@ const Landing = () => {
                         width: "400px",
                         display: "inline-block",
                     }}
-                    className="absolute flex flex-col gap-8 pt-32 column top-20 left-20 bg-white rounded-lg bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-25"
+                    className="absolute flex flex-col gap-8 pt-32 column top-20 left-20 bg-white rounded-lg bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-30"
                 >
                     <div
                         style={{

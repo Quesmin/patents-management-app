@@ -71,3 +71,12 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 } */
+
+html {
+    background-color: hsl(var(--b3)) !important;
+}
+
+#root {
+    overflow: hidden;
+    max-width: 1280px;
+}

@@ -1,17 +1,14 @@
 import { useNavigate } from "react-router-dom";
+import PatentCard, {
+    PatentCardColor,
+} from "../../common/PatentCard/PatentCard";
 import useBlockchainPatents from "../../hooks/useBlockchainPatents";
-import { logout } from "../../state/account/slice";
-import { useAppDispatch, useAppSelector } from "../../state/store";
 import { State } from "../../types/Common";
-import { setPatents } from "../../state/patents/slice";
+import { BlockchainPatent } from "../../types/Patent";
+import { convertUnixToDateFormat } from "../../utils/dataUtils";
 
 const Admin = () => {
-    const currentAccount = useAppSelector(
-        (state) => state.account.currentAccount
-    );
-
     const navigate = useNavigate();
-    const dispatch = useAppDispatch();
 
     const blockchainPatents = useBlockchainPatents();
 
@@ -23,92 +20,50 @@ const Admin = () => {
         (p) => p.status === State.Rejected
     );
 
+    const renderPatentSection = (
+        sectionTitle: string,
+        patentCardsColor: PatentCardColor,
+        patents: BlockchainPatent[]
+    ) => {
+        if (patents.length === 0) {
+            return <></>;
+        }
+
+        return (
+            <div className="flex flex-col items-start w-full">
+                <div className="uppercase pb-6 font-black text-base text-gray-300">
+                    {sectionTitle}
+                </div>
+                <div className="gap-6 pb-6 flex w-full overflow-auto">
+                    {patents.map((p) => (
+                        <PatentCard
+                            key={p.id}
+                            title={p.title}
+                            id={p.id}
+                            owner={p.owner}
+                            cardColor={patentCardsColor}
+                            expirationDate={convertUnixToDateFormat(
+                                +p.expirationDate.toString()
+                            )}
+                            hasPendingRequest={
+                                p.expirationExtension === State.Pending
+                            }
+                            onClick={() => navigate("/admin/" + p.id)}
+                        />
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     return (
-        <>
-            <div>Admin</div>
-            <div>Address: {currentAccount?.address}</div>
-            <button
-                onClick={async () => {
-                    dispatch(setPatents([]));
-                    dispatch(logout(undefined));
-                }}
-            >
-                Disconnect
-            </button>
-            {drafts.length !== 0 && (
-                <>
-                    <h1 style={{ paddingBottom: 20 }}>Drafts</h1>
-                    {drafts.map((d) => (
-                        <div
-                            key={d.id}
-                            style={{
-                                paddingBottom: 8,
-                                border: "1px solid black",
-                            }}
-                            onClick={() => navigate("/admin/" + d.id)}
-                        >
-                            <div>{d.title}</div>
-                            <div>{d.id}</div>
-                            <div>{d.owner}</div>
-                            <div>{d.expirationDate}</div>
-                            {d.expirationExtension === State.Pending && (
-                                <div
-                                    style={{
-                                        backgroundColor: "red",
-                                        height: 10,
-                                        width: 10,
-                                        display: "block",
-                                    }}
-                                ></div>
-                            )}
-                        </div>
-                    ))}
-                </>
-            )}
-            {granteds.length !== 0 && (
-                <>
-                    <h1 style={{ paddingBottom: 20 }}>Granted</h1>
-                    {granteds.map((d) => (
-                        <div
-                            style={{ paddingBottom: 8 }}
-                            key={d.id}
-                            onClick={() => navigate("/admin/" + d.id)}
-                        >
-                            <div>{d.title}</div>
-                            <div>{d.id}</div>
-                            <div>{d.owner}</div>
-                            <div>{d.expirationDate}</div>
-                            {d.expirationExtension === State.Pending && (
-                                <div
-                                    style={{
-                                        backgroundColor: "red",
-                                        height: 10,
-                                        width: 10,
-                                    }}
-                                ></div>
-                            )}
-                        </div>
-                    ))}
-                </>
-            )}
-            {revoked.length !== 0 && (
-                <>
-                    <h1 style={{ paddingBottom: 20 }}>Revoked</h1>
-                    {revoked.map((d) => (
-                        <div
-                            style={{ paddingBottom: 8 }}
-                            key={d.id}
-                            onClick={() => navigate("/admin/" + d.id)}
-                        >
-                            <div>{d.title}</div>
-                            <div>{d.id}</div>
-                            <div>{d.owner}</div>
-                            <div>{d.expirationDate}</div>
-                        </div>
-                    ))}
-                </>
-            )}
-        </>
+        <div className="flex items-start flex-col px-8 w-full">
+            <div className=" font-bold text-2xl py-8">Admin Dashboard</div>
+
+            {renderPatentSection("Drafts", PatentCardColor.Blue, drafts)}
+            {renderPatentSection("Granted", PatentCardColor.Green, granteds)}
+            {renderPatentSection("Revoked", PatentCardColor.Red, revoked)}
+        </div>
     );
 };
 

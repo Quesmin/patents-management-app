@@ -11,7 +11,7 @@ import {
     RoyaltyContractData,
 } from "../../types/Patent";
 import { transactionAction, writeAction } from "../../utils/blockchainUtils";
-import { openInNewTab } from "../User/User";
+import { getIsContracValid, openInNewTab } from "../../utils/dataUtils";
 import config from "./../../../config";
 import PatentManagement from "./../../abis/PatentManagement.json";
 import LicenseOrganizationModal from "./LicenseOrganizationModal/LicenseOrganizationModal";
@@ -87,26 +87,6 @@ const Patent = () => {
     const handleRoyaltyContractClick = (contract: RoyaltyContractData) => {
         selectedPersonalRoyaltyContract.current = contract;
         setIsRoyaltyContractModalOpen(true);
-    };
-
-    const getIsContracValid = () => {
-        if (!royaltyContract) return false;
-
-        const now = moment().unix();
-        // console.log("🚀 ~ file: Patent.tsx:96 ~ getIsContracValid ~ now:", now);
-        // console.log(
-        //     "🚀 ~ file: Patent.tsx:100 ~ getIsContracValid ~ +royaltyContract.expirationDate.toString():",
-        //     +royaltyContract.expirationDate.toString()
-        // );
-        // console.log(
-        //     "🚀 ~ file: Patent.tsx:102 ~ getIsContracValid ~ +royaltyContract.paidUntil.toString():",
-        //     +royaltyContract.paidUntil.toString()
-        // );
-
-        return (
-            now < +royaltyContract.expirationDate.toString() ||
-            now < +royaltyContract.paidUntil.toString()
-        );
     };
 
     const renderAdminActionsPatent = () => {
@@ -306,7 +286,7 @@ const Patent = () => {
             >
                 {!royaltyContract ? (
                     <Navigate to="/user" />
-                ) : getIsContracValid() ? (
+                ) : getIsContracValid(royaltyContract) ? (
                     royaltyContract.paused ? (
                         <button
                             onClick={async () => {

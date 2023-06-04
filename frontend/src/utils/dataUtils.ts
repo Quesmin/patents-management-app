@@ -1,3 +1,4 @@
+import moment from "moment";
 import { State } from "../types/Common";
 import {
     BlockchainPatent,
@@ -13,7 +14,6 @@ export const getLicensedPatentsAndContractsForCurrentUser = (
     currentUser: string | undefined
 ) => {
     if (!patentsData.length || !licensedData.length || !currentUser) return [];
-    console.log("🚀 ~ file: dataUtils.ts:16 ~ licensedData:", licensedData);
     const licensedContracts = licensedData
         .flatMap((licensedPatent) => licensedPatent.royaltyContractsData)
         .filter((royaltyContract) =>
@@ -63,4 +63,25 @@ export const getPersonalGrantedPatentsWithRoyaltyContracts = (
         });
 
     return result;
+};
+
+export const convertUnixToDateFormat = (unix: number) => {
+    return moment.unix(unix).format("MMM Do YYYY HH:mm");
+};
+
+export const getIsContracValid = (
+    royaltyContract: LicensedContractWithPatentData | undefined
+) => {
+    if (!royaltyContract) return false;
+
+    const now = moment().unix();
+
+    return (
+        now < +royaltyContract.expirationDate.toString() ||
+        now < +royaltyContract.paidUntil.toString()
+    );
+};
+
+export const openInNewTab = (url: string) => {
+    window.open(url, "_blank", "noreferrer");
 };

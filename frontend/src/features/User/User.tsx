@@ -1,4 +1,4 @@
-import React from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PatentCard, {
     PatentCardColor,
@@ -29,16 +29,14 @@ import {
     isLicensedContractWithPatentDataArray,
     isPersonalPatentsWithRoyaltyContractsArray,
 } from "../../utils/guardUtils";
+import SubmitDraftModal from "./SubmitDraftModal/SubmitDraftModal";
 
 const User = () => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const currentAccount = useAppSelector(
         (state) => state.account.currentAccount
     );
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
     const navigate = useNavigate();
-    const [patentTitle, setPatentTitle] = React.useState("");
-    const [patentFile, setPatentFile] = React.useState<File | null>(null);
-
     const blockchainPatents = useBlockchainPatents();
     const licensedPatents = useLicensedPatents();
 
@@ -68,9 +66,10 @@ const User = () => {
             currentAccount?.address
         );
 
-    const handleSubmitPatent = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
+    const handleSubmitPatent = async (
+        title: string,
+        patentFile: File | null
+    ) => {
         if (!patentFile) return;
 
         const ipfsHash = await submitToIpfsCall(patentFile);
@@ -78,19 +77,13 @@ const User = () => {
         if (!ipfsHash) return;
 
         const receipt = await writeAction(
-            [patentTitle, ipfsHash],
+            [title, ipfsHash],
             "submitDraftPatent",
             "3"
         );
 
         if (!receipt || !receipt.status) {
             await removeFromIpfsCall(ipfsHash);
-        }
-
-        setPatentTitle("");
-        setPatentFile(null);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
         }
     };
 
@@ -199,39 +192,13 @@ const User = () => {
     return (
         <div className="flex items-start flex-col px-8 w-full">
             <div className=" font-bold text-2xl py-8">User Dashboard</div>
-            <form
-                style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    marginBottom: 20,
-                }}
-                onSubmit={handleSubmitPatent}
-            >
-                <input
-                    placeholder="Patent title"
-                    style={{ border: "1px solid black", width: "200px" }}
-                    type="text"
-                    value={patentTitle}
-                    onChange={(e) => setPatentTitle(e.target.value)}
-                />
 
-                <input
-                    ref={fileInputRef}
-                    placeholder="Patent PDF"
-                    style={{ border: "1px solid black", width: "200px" }}
-                    type="file"
-                    accept="application/pdf"
-                    required
-                    onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                            setPatentFile(file);
-                        }
-                    }}
-                />
-                <button type="submit">Submit upload</button>
-            </form>
+            <button
+                onClick={() => setIsModalOpen(true)}
+                className="btn btn-secondary capitalize mb-6"
+            >
+                Submit Draft Patent
+            </button>
 
             <div>
                 {renderPatentSection(
@@ -251,6 +218,11 @@ const User = () => {
                 )}
                 {renderPatentSection("Licensed", licensedPatentsWithContracts)}
             </div>
+            <SubmitDraftModal
+                isShown={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmitDraft={handleSubmitPatent}
+            />
         </div>
     );
 };

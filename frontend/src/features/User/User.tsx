@@ -195,7 +195,7 @@ const User = () => {
 
             <button
                 onClick={() => setIsModalOpen(true)}
-                className="btn btn-secondary capitalize mb-6"
+                className="btn btn-neutral capitalize mb-6"
             >
                 Submit Draft Patent
             </button>

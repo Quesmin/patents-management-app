@@ -1,31 +1,23 @@
 import React, { useState } from "react";
 import { writeAction } from "../../../utils/blockchainUtils";
 import { parseEther } from "viem";
-
-export const DAY_IN_SECONDS = 86400;
-export const MONTH_IN_SECONDS = 30 * DAY_IN_SECONDS;
+import Modal, { ModalProps } from "../../../common/Modal/Modal";
 
 type LicenseOrganizationModalProps = {
     currentPatentId: string;
-    onClose: () => void;
-};
+} & ModalProps;
 
 const LicenseOrganizationModal: React.FC<LicenseOrganizationModalProps> = ({
     currentPatentId,
     onClose,
+    isShown,
 }) => {
     const [organizationAddress, setOrganizationAddress] = useState("");
     const [royaltyFee, setRoyaltyFee] = useState(0);
     const [paymentIntervalMonths, setPaymentIntervalMonths] = useState(0);
     const [expirationDate, setExpirationDate] = useState("");
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        // Perform validation or submit data to backend
-        // ...
-
-        // Reset input fields
+    const handleSubmit = async () => {
         const receipt = await writeAction(
             [
                 currentPatentId,
@@ -52,84 +44,82 @@ const LicenseOrganizationModal: React.FC<LicenseOrganizationModalProps> = ({
     };
 
     return (
-        <div style={{ ...modalStyle, position: "fixed" }}>
-            <div style={{ ...modalContentStyle }}>
-                <div style={{ display: "flex" }}>
-                    <h2>License Organization</h2>
-                    <h2 onClick={() => onClose()}>X</h2>
+        <Modal isShown={isShown} onClose={onClose}>
+            <div className="flex flex-col py-8 items-center gap-4">
+                <h3 className="font-bold text-lg mb-4">License Organization</h3>
+
+                <div className="form-control w-full max-w-xs">
+                    <label className="label">
+                        <span className="label-text">Organization Address</span>
+                    </label>
+                    <input
+                        className="input input-bordered w-full max-w-xs"
+                        type="text"
+                        value={organizationAddress}
+                        onChange={(e) => setOrganizationAddress(e.target.value)}
+                    />
                 </div>
-                <form onSubmit={handleSubmit}>
-                    <div>
-                        <label>Organization Address:</label>
-                        <input
-                            type="text"
-                            value={organizationAddress}
-                            onChange={(e) =>
-                                setOrganizationAddress(e.target.value)
+                <div className="form-control w-full max-w-xs">
+                    <label className="label">
+                        <span className="label-text">Royalty Fee</span>
+                    </label>
+
+                    <input
+                        className="input input-bordered w-full max-w-xs"
+                        placeholder="Royalty Fee"
+                        type="number"
+                        value={royaltyFee}
+                        onChange={(e) => {
+                            const inputNumber = parseInt(e.target.value, 10);
+                            if (!isNaN(inputNumber) && inputNumber >= 0) {
+                                setRoyaltyFee(inputNumber);
                             }
-                        />
-                    </div>
-                    <div>
-                        <label>Royalty Fee:</label>
-                        <input
-                            type="number"
-                            value={royaltyFee}
-                            onChange={(e) => {
-                                const inputNumber = parseInt(
-                                    e.target.value,
-                                    10
-                                );
-                                if (!isNaN(inputNumber)) {
-                                    setRoyaltyFee(inputNumber);
-                                }
-                            }}
-                        />
-                    </div>
-                    <div>
-                        <label>Payment Interval (Months):</label>
-                        <input
-                            type="number"
-                            value={paymentIntervalMonths}
-                            onChange={(e) => {
-                                const inputNumber = parseInt(
-                                    e.target.value,
-                                    10
-                                );
-                                if (!isNaN(inputNumber)) {
-                                    setPaymentIntervalMonths(inputNumber);
-                                }
-                            }}
-                        />
-                    </div>
-                    <div>
-                        <label>Expiration Date</label>
-                        <input
-                            type="datetime-local"
-                            value={expirationDate}
-                            onChange={(e) => setExpirationDate(e.target.value)}
-                        />
-                    </div>
-                    <button type="submit">License Organization</button>
-                </form>
+                        }}
+                    />
+                </div>
+                <div className="form-control w-full max-w-xs">
+                    <label className="label">
+                        <span className="label-text">
+                            Payment Interval (Months)
+                        </span>
+                    </label>
+                    <input
+                        className="input input-bordered w-full max-w-xs"
+                        placeholder="Payment Interval (Months)"
+                        type="number"
+                        value={paymentIntervalMonths}
+                        onChange={(e) => {
+                            const inputNumber = parseInt(e.target.value, 10);
+                            if (!isNaN(inputNumber) && inputNumber >= 0) {
+                                setPaymentIntervalMonths(inputNumber);
+                            }
+                        }}
+                    />
+                </div>
+                <div className="form-control w-full max-w-xs">
+                    <label className="label">
+                        <span className="label-text">Expiration Date</span>
+                    </label>
+
+                    <input
+                        className="input input-bordered w-full max-w-xs"
+                        type="datetime-local"
+                        value={expirationDate}
+                        onChange={(e) => setExpirationDate(e.target.value)}
+                    />
+                </div>
+                <button
+                    className="btn btn-active btn-accent w-full max-w-xs mt-8 capitalize"
+                    type="submit"
+                    onClick={handleSubmit}
+                >
+                    Submit
+                </button>
             </div>
-        </div>
+            {/* </div>
+            </div> */}
+        </Modal>
     );
-};
-
-const modalStyle = {
-    top: "0",
-    left: "0",
-    width: "100%",
-    height: "100%",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-};
-
-const modalContentStyle = {
-    background: "#fff",
-    padding: "20px",
 };
 
 export default LicenseOrganizationModal;

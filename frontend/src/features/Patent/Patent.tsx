@@ -504,22 +504,18 @@ const Patent = () => {
                     </div>
                 )}
             </div>
-            {isLicenseOrgModalOpen && (
-                <LicenseOrganizationModal
-                    currentPatentId={currentPatent.id}
-                    onClose={() => setIsLicenseOrgModalOpen(false)}
-                />
-            )}
-            {isRoyaltyContractModalOpen && (
-                <RoyaltyContractModal
-                    key={JSON.stringify(
-                        selectedPersonalRoyaltyContract.current
-                    )}
-                    isReadOnly={selectedPersonalRoyaltyContract.current?.paused}
-                    selectedContract={selectedPersonalRoyaltyContract.current}
-                    onClose={() => setIsRoyaltyContractModalOpen(false)}
-                />
-            )}
+            <LicenseOrganizationModal
+                isShown={isLicenseOrgModalOpen}
+                currentPatentId={currentPatent.id}
+                onClose={() => setIsLicenseOrgModalOpen(false)}
+            />
+            <RoyaltyContractModal
+                key={JSON.stringify(selectedPersonalRoyaltyContract.current)}
+                isShown={isRoyaltyContractModalOpen}
+                isReadOnly={selectedPersonalRoyaltyContract.current?.paused}
+                selectedContract={selectedPersonalRoyaltyContract.current}
+                onClose={() => setIsRoyaltyContractModalOpen(false)}
+            />
         </>
     );
 };

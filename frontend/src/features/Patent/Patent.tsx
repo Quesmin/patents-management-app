@@ -4,6 +4,8 @@ import { Navigate, useLocation, useParams } from "react-router-dom";
 import { useContractWrite } from "wagmi";
 import { writeContract } from "wagmi/actions";
 import Web3 from "web3";
+import clockFilledIcon from "../../assets/clock-filled.svg";
+import userFilledIcon from "../../assets/user-filled.svg";
 import { useAppSelector } from "../../state/store";
 import { State } from "../../types/Common";
 import {
@@ -11,7 +13,11 @@ import {
     RoyaltyContractData,
 } from "../../types/Patent";
 import { transactionAction, writeAction } from "../../utils/blockchainUtils";
-import { getIsContracValid, openInNewTab } from "../../utils/dataUtils";
+import {
+    convertUnixToDateFormat,
+    getIsContracValid,
+    openInNewTab,
+} from "../../utils/dataUtils";
 import config from "./../../../config";
 import PatentManagement from "./../../abis/PatentManagement.json";
 import LicenseOrganizationModal from "./LicenseOrganizationModal/LicenseOrganizationModal";
@@ -31,7 +37,8 @@ const Patent = () => {
     const patents = useAppSelector((state) => state.patent.patents);
     const currentPatent = patents.find((p) => p.id === currentPatentId);
     const hasCurrentPatentExtensionRequest =
-        currentPatent?.expirationExtension === State.Pending;
+        currentPatent?.expirationExtension === State.Pending &&
+        currentPatent.status === State.Pending;
     const extensionRequestNotInitiated =
         currentPatent?.expirationExtension === State.NotStarted;
 
@@ -89,131 +96,116 @@ const Patent = () => {
         setIsRoyaltyContractModalOpen(true);
     };
 
-    const renderAdminActionsPatent = () => {
-        switch (currentPatent.status) {
-            case State.Pending:
-                return (
-                    <div
-                        style={{
-                            gap: 4,
-                            border: "1px solid black",
-                        }}
-                    >
-                        <button
-                            onClick={async () =>
-                                await handleSetPatentState(
-                                    currentPatent.id,
-                                    State.Granted
-                                )
-                            }
-                        >
-                            Grant patent
-                        </button>
-                        <button
-                            onClick={async () =>
-                                await handleSetPatentState(
-                                    currentPatent.id,
-                                    State.Rejected
-                                )
-                            }
-                        >
-                            Revoke patent
-                        </button>
-                        {hasCurrentPatentExtensionRequest && (
-                            <>
-                                <button
-                                    onClick={async () =>
-                                        await handleExtendExpirationState(
-                                            currentPatent.id,
-                                            State.Granted
-                                        )
-                                    }
-                                >
-                                    Grant extension
-                                </button>
-                                <button
-                                    onClick={async () =>
-                                        await handleExtendExpirationState(
-                                            currentPatent.id,
-                                            State.Rejected
-                                        )
-                                    }
-                                >
-                                    Revoke extension
-                                </button>
-                            </>
-                        )}
-                    </div>
-                );
+    const renderAdminContent = () => {
+        const getAdminActions = () => {
+            switch (currentPatent.status) {
+                case State.Pending:
+                    return (
+                        <div className="flex gap-4">
+                            <button
+                                className="btn btn-success capitalize w-40"
+                                onClick={async () =>
+                                    await handleSetPatentState(
+                                        currentPatent.id,
+                                        State.Granted
+                                    )
+                                }
+                            >
+                                Grant patent
+                            </button>
+                            <button
+                                className="btn btn-error capitalize w-40"
+                                onClick={async () =>
+                                    await handleSetPatentState(
+                                        currentPatent.id,
+                                        State.Rejected
+                                    )
+                                }
+                            >
+                                Revoke patent
+                            </button>
+                        </div>
+                    );
 
-            case State.Granted:
-                return (
-                    <div
-                        style={{
-                            gap: 4,
-                            border: "1px solid black",
-                        }}
-                    >
-                        <button
-                            onClick={async () =>
-                                await handleSetPatentState(
-                                    currentPatent.id,
-                                    State.Rejected
-                                )
-                            }
-                        >
-                            Revoke patent
-                        </button>
-                        {hasCurrentPatentExtensionRequest && (
-                            <>
-                                <button
-                                    onClick={async () =>
-                                        await handleExtendExpirationState(
-                                            currentPatent.id,
-                                            State.Granted
-                                        )
-                                    }
-                                >
-                                    Grant extension
-                                </button>
-                                <button
-                                    onClick={async () =>
-                                        await handleExtendExpirationState(
-                                            currentPatent.id,
-                                            State.Rejected
-                                        )
-                                    }
-                                >
-                                    Revoke extension
-                                </button>
-                            </>
-                        )}
-                    </div>
-                );
-            case State.Rejected:
-                return (
-                    <div
-                        style={{
-                            gap: 4,
-                            border: "1px solid black",
-                        }}
-                    >
-                        <button
-                            onClick={async () =>
-                                await handleSetPatentState(
-                                    currentPatent.id,
-                                    State.Granted
-                                )
-                            }
-                        >
-                            Grant patent
-                        </button>
-                    </div>
-                );
+                case State.Granted:
+                    return (
+                        <div className="flex gap-4">
+                            <button
+                                className="btn btn-error capitalize w-40"
+                                onClick={async () =>
+                                    await handleSetPatentState(
+                                        currentPatent.id,
+                                        State.Rejected
+                                    )
+                                }
+                            >
+                                Revoke patent
+                            </button>
+                        </div>
+                    );
+                case State.Rejected:
+                    return (
+                        <div className="flex gap-4">
+                            <button
+                                className="btn btn-success capitalize w-40"
+                                onClick={async () =>
+                                    await handleSetPatentState(
+                                        currentPatent.id,
+                                        State.Granted
+                                    )
+                                }
+                            >
+                                Grant patent
+                            </button>
+                        </div>
+                    );
 
-            default:
-                return <></>;
-        }
+                default:
+                    return <></>;
+            }
+        };
+
+        return (
+            <div className="flex flex-col items-start w-full">
+                <div className="flex flex-col items-start pb-10">
+                    <div className="uppercase pb-2 font-black text-base text-gray-300">
+                        Main Actions
+                    </div>
+                    {getAdminActions()}
+                </div>
+                {hasCurrentPatentExtensionRequest && (
+                    <div className="flex flex-col items-start pb-10">
+                        <div className="uppercase pb-2 font-black text-base text-gray-300">
+                            Patent Expiration date extension
+                        </div>
+                        <div className="flex gap-4">
+                            <button
+                                className="btn btn-success capitalize w-40"
+                                onClick={async () =>
+                                    await handleExtendExpirationState(
+                                        currentPatent.id,
+                                        State.Granted
+                                    )
+                                }
+                            >
+                                Approve
+                            </button>
+                            <button
+                                className="btn btn-error capitalize w-40"
+                                onClick={async () =>
+                                    await handleExtendExpirationState(
+                                        currentPatent.id,
+                                        State.Rejected
+                                    )
+                                }
+                            >
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
     };
 
     const renderUserActionsPatent = () => {
@@ -259,14 +251,7 @@ const Patent = () => {
                                 Request extension
                             </button>
                         )}
-                        <button
-                            // onClick={async () =>
-                            //     await handleRequestExtensionPatent(
-                            //         currentPatent.id
-                            //     )
-                            // }
-                            onClick={() => setIsLicenseOrgModalOpen(true)}
-                        >
+                        <button onClick={() => setIsLicenseOrgModalOpen(true)}>
                             License organization (create royalty contract)
                         </button>
                     </div>
@@ -331,67 +316,50 @@ const Patent = () => {
                 )}
             </div>
         );
-
-        //     case State.Granted:
-        //         return (
-        //             <div
-        //                 style={{
-        //                     gap: 4,
-        //                     border: "1px solid black",
-        //                 }}
-        //             >
-        //                 {extensionRequestNotInitiated && (
-        //                     <button
-        //                         onClick={async () =>
-        //                             await handleRequestExtensionPatent(
-        //                                 currentPatent.id
-        //                             )
-        //                         }
-        //                     >
-        //                         Request extension
-        //                     </button>
-        //                 )}
-        //                 <button
-        //                     // onClick={async () =>
-        //                     //     await handleRequestExtensionPatent(
-        //                     //         currentPatent.id
-        //                     //     )
-        //                     // }
-        //                     onClick={() => setIsLicenseOrgModalOpen(true)}
-        //                 >
-        //                     License organization (create royalty contract)
-        //                 </button>
-        //             </div>
-        //         );
-
-        //     default:
-        //         return <></>;
-        // }
     };
 
     return (
-        <>
-            <div>
-                <h1>
+        <div className="flex flex-col items-start p-8">
+            <div className="flex flex-col items-start">
+                <h1 className="text-6xl font-extrabold">
                     {currentPatent.title}
-                    {hasCurrentPatentExtensionRequest
-                        ? " - extension requested"
-                        : ""}
                 </h1>
-                <h3>{currentPatent.id}</h3>
-                <h3>Owner address: {currentPatent.owner}</h3>
+                <h3 className="text-2xl font-bold text-gray-300 pt-2">
+                    {currentPatent.id}
+                </h3>
+
+                <div className="flex items-center gap-2 text-lg font-bold text-gray-300 pt-10">
+                    <img src={userFilledIcon} />
+                    {currentPatent.owner}
+                </div>
+
+                <div className="flex items-center gap-2 text-lg font-bold text-gray-300 pt-2">
+                    <img src={clockFilledIcon} />
+                    {convertUnixToDateFormat(
+                        +currentPatent.expirationDate.toString()
+                    )}
+                </div>
+
+                <button
+                    className="btn btn-secondary capitalize mt-6 mb-8 w-40"
+                    onClick={() =>
+                        openInNewTab(
+                            `${config.IPFS_GATEWAY}/${currentPatent.ipfsHash}`
+                        )
+                    }
+                >
+                    View document
+                </button>
+            </div>
+
+            <div>
                 {royaltyContract && (
                     <h3>
                         Royalty Contract address:
                         {royaltyContract.contractAddress}
                     </h3>
                 )}
-                <h3>
-                    Expiration date:
-                    {moment
-                        .unix(+currentPatent.expirationDate.toString())
-                        .format("MMM Do YYYY HH:mm")}
-                </h3>
+
                 {royaltyContract && (
                     <div>
                         <h3>
@@ -411,20 +379,9 @@ const Patent = () => {
                         </h3>
                     </div>
                 )}
-                <div style={{ border: "1px solid black" }}>
-                    <button
-                        onClick={() =>
-                            openInNewTab(
-                                `${config.IPFS_GATEWAY}/${currentPatent.ipfsHash}`
-                            )
-                        }
-                    >
-                        View document
-                    </button>
-                </div>
 
                 {currentUser?.isAdmin
-                    ? renderAdminActionsPatent()
+                    ? renderAdminContent()
                     : royaltyContract
                     ? renderLicenseeActionsPatent()
                     : renderUserActionsPatent()}
@@ -516,7 +473,7 @@ const Patent = () => {
                 selectedContract={selectedPersonalRoyaltyContract.current}
                 onClose={() => setIsRoyaltyContractModalOpen(false)}
             />
-        </>
+        </div>
     );
 };
 

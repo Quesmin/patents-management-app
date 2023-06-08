@@ -48,24 +48,24 @@ const LicenseOrganizationModal: React.FC<LicenseOrganizationModalProps> = ({
             <div className="flex flex-col py-8 items-center gap-4">
                 <h3 className="font-bold text-lg mb-4">License Organization</h3>
 
-                <div className="form-control w-full max-w-xs">
+                <div className="form-control w-full max-w-lg">
                     <label className="label">
                         <span className="label-text">Organization Address</span>
                     </label>
                     <input
-                        className="input input-bordered w-full max-w-xs"
+                        className="input input-bordered w-full max-w-lg"
                         type="text"
                         value={organizationAddress}
                         onChange={(e) => setOrganizationAddress(e.target.value)}
                     />
                 </div>
-                <div className="form-control w-full max-w-xs">
+                <div className="form-control w-full max-w-lg">
                     <label className="label">
                         <span className="label-text">Royalty Fee</span>
                     </label>
 
                     <input
-                        className="input input-bordered w-full max-w-xs"
+                        className="input input-bordered w-full max-w-lg"
                         placeholder="Royalty Fee"
                         type="number"
                         value={royaltyFee}
@@ -77,14 +77,14 @@ const LicenseOrganizationModal: React.FC<LicenseOrganizationModalProps> = ({
                         }}
                     />
                 </div>
-                <div className="form-control w-full max-w-xs">
+                <div className="form-control w-full max-w-lg">
                     <label className="label">
                         <span className="label-text">
                             Payment Interval (Months)
                         </span>
                     </label>
                     <input
-                        className="input input-bordered w-full max-w-xs"
+                        className="input input-bordered w-full max-w-lg"
                         placeholder="Payment Interval (Months)"
                         type="number"
                         value={paymentIntervalMonths}
@@ -96,20 +96,20 @@ const LicenseOrganizationModal: React.FC<LicenseOrganizationModalProps> = ({
                         }}
                     />
                 </div>
-                <div className="form-control w-full max-w-xs">
+                <div className="form-control w-full max-w-lg">
                     <label className="label">
                         <span className="label-text">Expiration Date</span>
                     </label>
 
                     <input
-                        className="input input-bordered w-full max-w-xs"
+                        className="input input-bordered w-full max-w-lg"
                         type="datetime-local"
                         value={expirationDate}
                         onChange={(e) => setExpirationDate(e.target.value)}
                     />
                 </div>
                 <button
-                    className="btn btn-active btn-accent w-full max-w-xs mt-8 capitalize"
+                    className="btn btn-active btn-accent w-full max-w-lg mt-8 capitalize"
                     type="submit"
                     onClick={handleSubmit}
                 >

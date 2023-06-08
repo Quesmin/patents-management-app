@@ -76,10 +76,11 @@ export const getIsContracValid = (
 
     const now = moment().unix();
 
-    return (
-        now < +royaltyContract.expirationDate.toString() ||
-        now < +royaltyContract.paidUntil.toString()
-    );
+    if (now > +royaltyContract.expirationDate.toString()) return false;
+
+    if (now > +royaltyContract.paidUntil.toString()) return false;
+
+    return true;
 };
 
 export const openInNewTab = (url: string) => {

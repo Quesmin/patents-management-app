@@ -29,7 +29,7 @@ const SubmitDraftModal: React.FC<SubmitDraftModalProps> = ({
             <div className="flex flex-col py-8 items-center gap-4">
                 <h3 className="font-bold text-lg mb-4">Submit Draft Patent</h3>
 
-                <div className="form-control w-full max-w-xs">
+                <div className="form-control w-full max-w-lg">
                     <label className="label">
                         <span className="label-text">Patent Title</span>
                     </label>
@@ -37,17 +37,17 @@ const SubmitDraftModal: React.FC<SubmitDraftModalProps> = ({
                         value={patentTitle}
                         onChange={(e) => setPatentTitle(e.target.value)}
                         type="text"
-                        className="input input-bordered w-full max-w-xs"
+                        className="input input-bordered w-full max-w-lg"
                     />
                 </div>
-                <div className="form-control w-full max-w-xs">
+                <div className="form-control w-full max-w-lg">
                     <label className="label">
                         <span className="label-text">Patent PDF</span>
                     </label>
                     <input
                         ref={fileInputRef}
                         type="file"
-                        className="file-input file-input-bordered file-input-info w-full max-w-xs"
+                        className="file-input file-input-bordered file-input-info w-full max-w-lg"
                         accept="application/pdf"
                         required
                         onChange={(e) => {
@@ -61,7 +61,7 @@ const SubmitDraftModal: React.FC<SubmitDraftModalProps> = ({
 
                 <button
                     onClick={async () => await handleSubmitPatent()}
-                    className="btn btn-active btn-accent w-full max-w-xs mt-8 capitalize"
+                    className="btn btn-active btn-accent w-full max-w-lg mt-8 capitalize"
                 >
                     Submit
                 </button>

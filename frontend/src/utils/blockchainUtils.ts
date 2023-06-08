@@ -38,10 +38,6 @@ export const writeAction = async (
     contractAbi = ContractAbi.PatentManagementAbi
 ) => {
     const currentAbi = abiMap[contractAbi];
-    console.log(
-        "🚀 ~ file: blockchainUtils.ts:47 ~ config.PATENT_MANAGEMENT_CONTRACT_ADDRESS:",
-        config.PATENT_MANAGEMENT_CONTRACT_ADDRESS
-    );
 
     try {
         const { hash } = await writeContract({

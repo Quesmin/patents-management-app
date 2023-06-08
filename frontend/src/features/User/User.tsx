@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import PatentCard, {
-    PatentCardColor,
-} from "../../common/PatentCard/PatentCard";
+import PatentCard from "../../common/PatentCard/PatentCard";
 import useBlockchainPatents from "../../hooks/useBlockchainPatents";
 import useLicensedPatents from "../../hooks/useLicensedPatents";
 import { useAppSelector } from "../../state/store";
@@ -18,6 +16,7 @@ import {
     submitToIpfsCall,
     writeAction,
 } from "../../utils/blockchainUtils";
+import { CustomColors } from "../../utils/constants";
 import {
     convertUnixToDateFormat,
     getIsContracValid,
@@ -93,7 +92,7 @@ const User = () => {
             | BlockchainPatent[]
             | PersonalPatentsWithRoyaltyContracts[]
             | LicensedContractWithPatentData[],
-        patentsCardColor?: PatentCardColor
+        patentsCardColor?: string
     ) => {
         if (patents.length === 0) {
             return <></>;
@@ -204,17 +203,17 @@ const User = () => {
                 {renderPatentSection(
                     "Draft",
                     myDraftPatents,
-                    PatentCardColor.Blue
+                    CustomColors.Blue
                 )}
                 {renderPatentSection(
                     "Granted",
                     myGrantedPatentsWithContracts,
-                    PatentCardColor.Green
+                    CustomColors.Green
                 )}
                 {renderPatentSection(
                     "Revoked",
                     myRevokedPatents,
-                    PatentCardColor.Red
+                    CustomColors.Red
                 )}
                 {renderPatentSection("Licensed", licensedPatentsWithContracts)}
             </div>

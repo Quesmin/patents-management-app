@@ -47,7 +47,6 @@ export const isLicensedContractWithPatentDataArray = (
 export const isPersonalPatentsWithRoyaltyContractsArray = (
     patents: any
 ): patents is PersonalPatentsWithRoyaltyContracts[] => {
-    console.log("🚀 ~ file: guardUtils.ts:51 ~ patents:", patents);
     if (patents.length === 0) return true;
     return (
         "patent" in patents[0] &&

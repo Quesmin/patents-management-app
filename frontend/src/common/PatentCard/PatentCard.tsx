@@ -1,17 +1,12 @@
 import React from "react";
 import { shortPatentTitle, shortenAddress } from "../../utils/blockchainUtils";
-
-export enum PatentCardColor {
-    Green = "#046148",
-    Blue = "#042661",
-    Red = "#61042c",
-}
+import { CustomColors } from "../../utils/constants";
 
 type PatentCardProps = {
     title: string;
     id: string;
     expirationDate: string;
-    cardColor?: PatentCardColor;
+    cardColor?: string;
     owner?: string;
     hasPendingRequest?: boolean;
     onClick: () => void;
@@ -31,7 +26,7 @@ const PatentCard: React.FC<PatentCardProps> = ({
             onClick={onClick}
             style={{
                 width: "320px !important",
-                backgroundColor: cardColor ?? "#2a323c",
+                backgroundColor: cardColor ?? CustomColors.DefaultGrey,
                 border: hasPendingRequest ? "2px solid #f3cc30" : "",
             }}
             className="flex flex-col rounded-box bg-base-100 p-6"

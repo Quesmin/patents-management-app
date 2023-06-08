@@ -6,6 +6,7 @@ import { writeContract } from "wagmi/actions";
 import Web3 from "web3";
 import clockFilledIcon from "../../assets/clock-filled.svg";
 import userFilledIcon from "../../assets/user-filled.svg";
+import contractFilledIcon from "../../assets/contract-filled.svg";
 import { useAppSelector } from "../../state/store";
 import { State } from "../../types/Common";
 import {
@@ -22,6 +23,7 @@ import config from "./../../../config";
 import PatentManagement from "./../../abis/PatentManagement.json";
 import LicenseOrganizationModal from "./LicenseOrganizationModal/LicenseOrganizationModal";
 import RoyaltyContractModal from "./RoyaltyContractModal/RoyaltyContractModal";
+import RoyaltyContractCard from "../../common/RoyaltyContractCard/RoyaltyContractCard";
 
 const Patent = () => {
     const web3 = new Web3();
@@ -208,112 +210,215 @@ const Patent = () => {
         );
     };
 
-    const renderUserActionsPatent = () => {
-        switch (currentPatent.status) {
-            case State.Pending:
-                return (
-                    <div
-                        style={{
-                            gap: 4,
-                            border: "1px solid black",
-                        }}
-                    >
-                        {extensionRequestNotInitiated && (
-                            <button
-                                onClick={async () =>
-                                    await handleRequestExtensionPatent(
-                                        currentPatent.id
-                                    )
-                                }
-                            >
-                                Request extension
-                            </button>
-                        )}
-                    </div>
-                );
+    const renderUserContent = () => {
+        const shouldDisplayMainActions =
+            currentPatent.status !== State.Rejected &&
+            (extensionRequestNotInitiated ||
+                currentPatent.status === State.Granted);
 
-            case State.Granted:
-                return (
-                    <div
-                        style={{
-                            gap: 4,
-                            border: "1px solid black",
-                        }}
-                    >
-                        {extensionRequestNotInitiated && (
-                            <button
-                                onClick={async () =>
-                                    await handleRequestExtensionPatent(
-                                        currentPatent.id
-                                    )
-                                }
-                            >
-                                Request extension
-                            </button>
-                        )}
-                        <button onClick={() => setIsLicenseOrgModalOpen(true)}>
-                            License organization (create royalty contract)
-                        </button>
-                    </div>
-                );
+        const validRoyaltyContracts = patentRoyaltyContracts?.filter(
+            (c) => c.paused === false
+        );
+        const pendingRoyaltyContracts = patentRoyaltyContracts?.filter(
+            (c) => c.paused === true
+        );
+        const getUserMainActions = () => {
+            switch (currentPatent.status) {
+                case State.Pending:
+                    return (
+                        <div className="flex gap-4">
+                            {extensionRequestNotInitiated && (
+                                <button
+                                    className="btn btn-secondary capitalize w-40"
+                                    onClick={async () =>
+                                        await handleRequestExtensionPatent(
+                                            currentPatent.id
+                                        )
+                                    }
+                                >
+                                    Request extension
+                                </button>
+                            )}
+                        </div>
+                    );
 
-            default:
-                return <></>;
-        }
-    };
-    const renderLicenseeActionsPatent = () => {
+                case State.Granted:
+                    return (
+                        <div className="flex gap-4">
+                            {extensionRequestNotInitiated && (
+                                <button
+                                    className="btn btn-secondary capitalize w-40"
+                                    onClick={async () =>
+                                        await handleRequestExtensionPatent(
+                                            currentPatent.id
+                                        )
+                                    }
+                                >
+                                    Request extension
+                                </button>
+                            )}
+                            <button
+                                className="btn btn-accent capitalize w-40"
+                                onClick={() => setIsLicenseOrgModalOpen(true)}
+                            >
+                                License organization
+                            </button>
+                        </div>
+                    );
+
+                default:
+                    return <></>;
+            }
+        };
+
         return (
-            <div
-                style={{
-                    gap: 4,
-                    border: "1px solid black",
-                }}
-            >
-                {!royaltyContract ? (
-                    <Navigate to="/user" />
-                ) : getIsContracValid(royaltyContract) ? (
-                    royaltyContract.paused ? (
-                        <button
-                            onClick={async () => {
-                                const receipt = await writeAction(
-                                    [currentPatent.id],
-                                    "approveRoyaltyContract"
-                                );
-
-                                if (!receipt || !receipt.status) {
-                                    alert(
-                                        "Transaction failed. Check Metamask."
-                                    );
-                                }
-                            }}
-                        >
-                            Approve contract
-                        </button>
-                    ) : (
-                        <button
-                            onClick={async () => {
-                                const receipt = await transactionAction(
-                                    royaltyContract.contractAddress,
-                                    web3.utils.fromWei(
-                                        royaltyContract.royaltyFee.toString()
-                                    )
-                                );
-
-                                if (!receipt || !receipt.status) {
-                                    alert(
-                                        "Transaction failed. Check Metamask."
-                                    );
-                                }
-                            }}
-                        >
-                            {`Pay royalty fee (${web3.utils.fromWei(
-                                royaltyContract.royaltyFee.toString()
-                            )} ETH)`}
-                        </button>
-                    )
-                ) : (
-                    <div>Contract expired</div>
+            <div className="flex flex-col items-start w-full">
+                {shouldDisplayMainActions && (
+                    <div className="flex flex-col items-start pb-10">
+                        <div className="uppercase pb-2 font-black text-base text-gray-300">
+                            Main Actions
+                        </div>
+                        {getUserMainActions()}
+                    </div>
                 )}
+                {validRoyaltyContracts && validRoyaltyContracts.length > 0 && (
+                    <div className="flex flex-col items-start pb-10">
+                        <div className="uppercase pb-2 font-black text-base text-gray-300">
+                            Valid Royalty Contracts
+                        </div>
+
+                        <div className="flex gap-4">
+                            {validRoyaltyContracts.map((c) => (
+                                <RoyaltyContractCard
+                                    key={c.contractAddress}
+                                    contractAddress={c.contractAddress}
+                                    licenseeAddress={c.licensee}
+                                    royaltyFee={web3.utils.fromWei(
+                                        c.royaltyFee.toString()
+                                    )}
+                                    expirationDate={moment
+                                        .unix(+c.expirationDate.toString())
+                                        .format("DD/MM/YYYY HH:mm")}
+                                    isValid
+                                    onClick={() =>
+                                        handleRoyaltyContractClick(c)
+                                    }
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+                {pendingRoyaltyContracts &&
+                    pendingRoyaltyContracts.length > 0 && (
+                        <div className="flex flex-col items-start pb-10">
+                            <div className="uppercase pb-2 font-black text-base text-gray-300">
+                                Pending Royalty Contracts
+                            </div>
+                            <div className="flex gap-4">
+                                {pendingRoyaltyContracts.map((c) => (
+                                    <RoyaltyContractCard
+                                        key={c.contractAddress}
+                                        contractAddress={c.contractAddress}
+                                        licenseeAddress={c.licensee}
+                                        royaltyFee={web3.utils.fromWei(
+                                            c.royaltyFee.toString()
+                                        )}
+                                        expirationDate={moment
+                                            .unix(+c.expirationDate.toString())
+                                            .format("DD/MM/YYYY HH:mm")}
+                                        onClick={() =>
+                                            handleRoyaltyContractClick(c)
+                                        }
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+            </div>
+        );
+    };
+    const renderLicenseeContent = () => {
+        if (!royaltyContract) return <></>;
+
+        return (
+            <div className="flex flex-col items-start w-full">
+                <div className="flex flex-col items-start pb-10">
+                    <div className="flex items-center gap-2 text-lg font-bold text-gray-300">
+                        <img src={contractFilledIcon} />
+                        {royaltyContract.contractAddress}
+                    </div>
+                    <div className="flex items-center gap-4 text-md pt-2">
+                        <div className=" text-md font-bold text-gray-300 capitalize">
+                            Paid until
+                        </div>
+                        {convertUnixToDateFormat(
+                            +royaltyContract.paidUntil.toString()
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-4 text-md">
+                        <div className=" text-md font-bold text-gray-300 capitalize">
+                            Expiration Date
+                        </div>
+                        {convertUnixToDateFormat(
+                            +royaltyContract.expirationDate.toString()
+                        )}
+                    </div>
+                </div>
+                <div className="flex flex-col items-start pb-10">
+                    <div className="uppercase pb-2 font-black text-base text-gray-300">
+                        Main Actions
+                    </div>
+                    {!royaltyContract ? (
+                        <Navigate to="/user" />
+                    ) : getIsContracValid(royaltyContract) ? (
+                        royaltyContract.paused ? (
+                            <button
+                                className="btn btn-accent capitalize w-40"
+                                onClick={async () => {
+                                    const receipt = await writeAction(
+                                        [currentPatent.id],
+                                        "approveRoyaltyContract"
+                                    );
+
+                                    if (!receipt || !receipt.status) {
+                                        alert(
+                                            "Transaction failed. Check Metamask."
+                                        );
+                                    }
+                                }}
+                            >
+                                Approve contract
+                            </button>
+                        ) : (
+                            <button
+                                className="btn btn-accent capitalize w-40"
+                                onClick={async () => {
+                                    const receipt = await transactionAction(
+                                        royaltyContract.contractAddress,
+                                        web3.utils.fromWei(
+                                            royaltyContract.royaltyFee.toString()
+                                        )
+                                    );
+
+                                    if (!receipt || !receipt.status) {
+                                        alert(
+                                            "Transaction failed. Check Metamask."
+                                        );
+                                    }
+                                }}
+                            >
+                                {`Pay royalty fee (${web3.utils.fromWei(
+                                    royaltyContract.royaltyFee.toString()
+                                )} ETH)`}
+                            </button>
+                        )
+                    ) : (
+                        <div className="text-md text-gray-300 uppercase">
+                            Contract expired
+                        </div>
+                    )}
+                </div>
             </div>
         );
     };
@@ -328,7 +433,7 @@ const Patent = () => {
                     {currentPatent.id}
                 </h3>
 
-                <div className="flex items-center gap-2 text-lg font-bold text-gray-300 pt-10">
+                <div className="flex items-center gap-2 text-lg font-bold text-gray-300 pt-8">
                     <img src={userFilledIcon} />
                     {currentPatent.owner}
                 </div>
@@ -353,113 +458,11 @@ const Patent = () => {
             </div>
 
             <div>
-                {royaltyContract && (
-                    <h3>
-                        Royalty Contract address:
-                        {royaltyContract.contractAddress}
-                    </h3>
-                )}
-
-                {royaltyContract && (
-                    <div>
-                        <h3>
-                            Paid until:{" "}
-                            {moment
-                                .unix(+royaltyContract.paidUntil.toString())
-                                .format("MMM Do YYYY HH:mm")}
-                        </h3>
-
-                        <h3>
-                            Expiration date:{" "}
-                            {moment
-                                .unix(
-                                    +royaltyContract.expirationDate.toString()
-                                )
-                                .format("MMM Do YYYY HH:mm")}
-                        </h3>
-                    </div>
-                )}
-
                 {currentUser?.isAdmin
                     ? renderAdminContent()
                     : royaltyContract
-                    ? renderLicenseeActionsPatent()
-                    : renderUserActionsPatent()}
-                {patentRoyaltyContracts && (
-                    <div style={{ paddingTop: 48 }}>
-                        <h1>Royalty contracts</h1>
-                        <h2 style={{ paddingTop: 20 }}>Valid</h2>
-                        <div>
-                            {patentRoyaltyContracts
-                                .filter((c) => c.paused === false)
-                                .map((c) => (
-                                    <div
-                                        style={{ paddingBottom: 8 }}
-                                        key={c.contractAddress}
-                                        onClick={() =>
-                                            handleRoyaltyContractClick(c)
-                                        }
-                                    >
-                                        <h3>
-                                            Contract address:{" "}
-                                            {c.contractAddress}
-                                        </h3>
-                                        <h3>Licensee address: {c.licensee}</h3>
-                                        <h3>
-                                            Royalty fee:{" "}
-                                            {web3.utils.fromWei(
-                                                c.royaltyFee.toString()
-                                            )}{" "}
-                                            ETH
-                                        </h3>
-                                        <h3>
-                                            Expiration date:{" "}
-                                            {moment
-                                                .unix(
-                                                    +c.expirationDate.toString()
-                                                )
-                                                .format("MMM Do YYYY HH:mm")}
-                                        </h3>
-                                    </div>
-                                ))}
-                        </div>
-                        <h2 style={{ paddingTop: 20 }}>Pending</h2>
-                        <div>
-                            {patentRoyaltyContracts
-                                .filter((c) => c.paused === true)
-                                .map((c) => (
-                                    <div
-                                        style={{ paddingBottom: 8 }}
-                                        key={c.contractAddress}
-                                        onClick={() =>
-                                            handleRoyaltyContractClick(c)
-                                        }
-                                    >
-                                        <h3>
-                                            Contract address:{" "}
-                                            {c.contractAddress}
-                                        </h3>
-                                        <h3>Licensee address: {c.licensee}</h3>
-                                        <h3>
-                                            Royalty fee:{" "}
-                                            {web3.utils.fromWei(
-                                                c.royaltyFee.toString()
-                                            )}{" "}
-                                            ETH
-                                        </h3>
-                                        <h3>
-                                            Expiration date:{" "}
-                                            {moment
-                                                .unix(
-                                                    +c.expirationDate.toString()
-                                                )
-                                                .format("MMM Do YYYY HH:mm")}
-                                        </h3>
-                                    </div>
-                                ))}
-                        </div>
-                    </div>
-                )}
+                    ? renderLicenseeContent()
+                    : renderUserContent()}
             </div>
             <LicenseOrganizationModal
                 isShown={isLicenseOrgModalOpen}

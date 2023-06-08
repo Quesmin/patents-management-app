@@ -1,10 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import PatentCard, {
-    PatentCardColor,
-} from "../../common/PatentCard/PatentCard";
+import PatentCard from "../../common/PatentCard/PatentCard";
 import useBlockchainPatents from "../../hooks/useBlockchainPatents";
 import { State } from "../../types/Common";
 import { BlockchainPatent } from "../../types/Patent";
+import { CustomColors } from "../../utils/constants";
 import { convertUnixToDateFormat } from "../../utils/dataUtils";
 
 const Admin = () => {
@@ -22,7 +21,7 @@ const Admin = () => {
 
     const renderPatentSection = (
         sectionTitle: string,
-        patentCardsColor: PatentCardColor,
+        patentCardsColor: string,
         patents: BlockchainPatent[]
     ) => {
         if (patents.length === 0) {
@@ -60,9 +59,9 @@ const Admin = () => {
         <div className="flex items-start flex-col px-8 w-full">
             <div className=" font-bold text-2xl py-8">Admin Dashboard</div>
 
-            {renderPatentSection("Drafts", PatentCardColor.Blue, drafts)}
-            {renderPatentSection("Granted", PatentCardColor.Green, granteds)}
-            {renderPatentSection("Revoked", PatentCardColor.Red, revoked)}
+            {renderPatentSection("Drafts", CustomColors.Blue, drafts)}
+            {renderPatentSection("Granted", CustomColors.Green, granteds)}
+            {renderPatentSection("Revoked", CustomColors.Red, revoked)}
         </div>
     );
 };

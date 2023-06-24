@@ -6,7 +6,7 @@ import { useAppDispatch } from "../state/store";
 import React from "react";
 import config from "../../config";
 
-const useBlockchainPatents = () => {
+const useBlockchainPatentsSync = () => {
     const dispatch = useAppDispatch();
     const isMounted = React.useRef(true);
 
@@ -33,4 +33,4 @@ const useBlockchainPatents = () => {
     return (data ?? []) as BlockchainPatent[];
 };
 
-export default useBlockchainPatents;
+export default useBlockchainPatentsSync;

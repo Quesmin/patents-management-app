@@ -2,6 +2,13 @@ import React, { useState } from "react";
 import { writeAction } from "../../../utils/blockchainUtils";
 import { parseEther } from "viem";
 import Modal, { ModalProps } from "../../../common/Modal/Modal";
+import { useAppDispatch } from "../../../state/store";
+import {
+    setErrorAlertMessage,
+    setInfoModalMessage,
+    setIsLoading,
+} from "../../../state/notification/slice";
+import { INFO_MODAL_MESSAGE } from "../../../utils/constants";
 
 type LicenseOrganizationModalProps = {
     currentPatentId: string;
@@ -12,12 +19,14 @@ const LicenseOrganizationModal: React.FC<LicenseOrganizationModalProps> = ({
     onClose,
     isShown,
 }) => {
+    const dispatch = useAppDispatch();
     const [organizationAddress, setOrganizationAddress] = useState("");
     const [royaltyFee, setRoyaltyFee] = useState(0);
     const [paymentIntervalMonths, setPaymentIntervalMonths] = useState(0);
     const [expirationDate, setExpirationDate] = useState("");
 
     const handleSubmit = async () => {
+        dispatch(setIsLoading(true));
         const receipt = await writeAction(
             [
                 currentPatentId,
@@ -31,8 +40,11 @@ const LicenseOrganizationModal: React.FC<LicenseOrganizationModalProps> = ({
         );
 
         if (!receipt || !receipt.status) {
-            alert("Failed to license organization");
+            dispatch(setErrorAlertMessage("Failed to license organization!"));
+            dispatch(setIsLoading(false));
             return;
+        } else {
+            dispatch(setInfoModalMessage(INFO_MODAL_MESSAGE));
         }
 
         setOrganizationAddress("");
@@ -41,6 +53,7 @@ const LicenseOrganizationModal: React.FC<LicenseOrganizationModalProps> = ({
         setExpirationDate("");
 
         onClose();
+        dispatch(setIsLoading(false));
     };
 
     return (

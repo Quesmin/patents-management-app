@@ -1,13 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import { accountReducerSlice } from "./account/slice";
-import { patentReducerSlice } from "./patents/slice";
 import { persistReducer, persistStore } from "redux-persist";
 import storage from "redux-persist/lib/storage";
-import { Reducer } from "react";
 import { AccountState } from "../types/Account";
 import { LicensedState, PatentState } from "../types/Patent";
+import { accountReducerSlice } from "./account/slice";
 import { licensedReducerSlice } from "./licensed/slice";
+import { notificationReducerSlice } from "./notification/slice";
+import { patentReducerSlice } from "./patents/slice";
 
 const accountPersistConfig = {
     key: "account",
@@ -38,6 +38,7 @@ export const store = configureStore({
             licensedPersistConfig,
             licensedReducerSlice.reducer
         ),
+        [notificationReducerSlice.name]: notificationReducerSlice.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({

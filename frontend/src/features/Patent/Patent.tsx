@@ -1,13 +1,13 @@
 import moment from "moment";
 import { useRef, useState } from "react";
 import { Navigate, useLocation, useParams } from "react-router-dom";
-import { useContractWrite } from "wagmi";
 import { writeContract } from "wagmi/actions";
 import Web3 from "web3";
 import clockFilledIcon from "../../assets/clock-filled.svg";
-import userFilledIcon from "../../assets/user-filled.svg";
 import contractFilledIcon from "../../assets/contract-filled.svg";
-import { useAppSelector } from "../../state/store";
+import userFilledIcon from "../../assets/user-filled.svg";
+import RoyaltyContractCard from "../../common/RoyaltyContractCard/RoyaltyContractCard";
+import { useAppDispatch, useAppSelector } from "../../state/store";
 import { State } from "../../types/Common";
 import {
     LicensedContractWithPatentData,
@@ -23,9 +23,16 @@ import config from "./../../../config";
 import PatentManagement from "./../../abis/PatentManagement.json";
 import LicenseOrganizationModal from "./LicenseOrganizationModal/LicenseOrganizationModal";
 import RoyaltyContractModal from "./RoyaltyContractModal/RoyaltyContractModal";
-import RoyaltyContractCard from "../../common/RoyaltyContractCard/RoyaltyContractCard";
+import {
+    setErrorAlertMessage,
+    setInfoModalMessage,
+    setIsLoading,
+} from "../../state/notification/slice";
+import { INFO_MODAL_MESSAGE } from "../../utils/constants";
+import useBlockchainPatentsSync from "../../hooks/useBlockchainPatents";
 
 const Patent = () => {
+    const dispatch = useAppDispatch();
     const web3 = new Web3();
     const location = useLocation();
     const [isLicenseOrgModalOpen, setIsLicenseOrgModalOpen] = useState(false);
@@ -52,50 +59,99 @@ const Patent = () => {
         | RoyaltyContractData[]
         | undefined;
 
-    const { data: royaltyContractAddress } = useContractWrite({
-        address: config.PATENT_MANAGEMENT_CONTRACT_ADDRESS,
-        abi: PatentManagement.abi,
-        functionName: "getContractAddressForLicensee",
-        args: [currentPatentId, currentUser?.address],
-    });
+    useBlockchainPatentsSync();
 
     if (!currentPatent) {
         return <Navigate to="/not-found" />;
     }
 
     const handleSetPatentState = async (patentId: string, newState: State) => {
-        const { _hash } = await writeContract({
-            address: config.PATENT_MANAGEMENT_CONTRACT_ADDRESS,
-            abi: PatentManagement.abi,
-            functionName: "handlePatentState",
-            args: [patentId, newState],
-        });
+        dispatch(setIsLoading(true));
+        try {
+            await writeContract({
+                address: config.PATENT_MANAGEMENT_CONTRACT_ADDRESS,
+                abi: PatentManagement.abi,
+                functionName: "handlePatentState",
+                args: [patentId, newState],
+            });
+            dispatch(setInfoModalMessage(INFO_MODAL_MESSAGE));
+        } catch (error) {
+            dispatch(setErrorAlertMessage("Could not change patent state!"));
+        }
+        dispatch(setIsLoading(false));
     };
 
     const handleExtendExpirationState = async (
         patentId: string,
         newState: State
     ) => {
-        const { _hash } = await writeContract({
-            address: config.PATENT_MANAGEMENT_CONTRACT_ADDRESS,
-            abi: PatentManagement.abi,
-            functionName: "handlePatentExtensionRequest",
-            args: [patentId, newState],
-        });
+        dispatch(setIsLoading(true));
+        try {
+            await writeContract({
+                address: config.PATENT_MANAGEMENT_CONTRACT_ADDRESS,
+                abi: PatentManagement.abi,
+                functionName: "handlePatentExtensionRequest",
+                args: [patentId, newState],
+            });
+            dispatch(setInfoModalMessage(INFO_MODAL_MESSAGE));
+        } catch (error) {
+            dispatch(setErrorAlertMessage("Could not change patent state!"));
+        }
+        dispatch(setIsLoading(false));
     };
 
     const handleRequestExtensionPatent = async (patentId: string) => {
-        const { hash } = await writeContract({
-            address: config.PATENT_MANAGEMENT_CONTRACT_ADDRESS,
-            abi: PatentManagement.abi,
-            functionName: "requestExtension",
-            args: [patentId],
-        });
+        dispatch(setIsLoading(true));
+        try {
+            await writeContract({
+                address: config.PATENT_MANAGEMENT_CONTRACT_ADDRESS,
+                abi: PatentManagement.abi,
+                functionName: "requestExtension",
+                args: [patentId],
+            });
+            dispatch(setInfoModalMessage(INFO_MODAL_MESSAGE));
+        } catch (error) {
+            dispatch(setErrorAlertMessage("Could not change patent state!"));
+        }
+        dispatch(setIsLoading(false));
     };
 
     const handleRoyaltyContractClick = (contract: RoyaltyContractData) => {
         selectedPersonalRoyaltyContract.current = contract;
         setIsRoyaltyContractModalOpen(true);
+    };
+
+    const handleRoyaltyContractApproval = async () => {
+        dispatch(setIsLoading(true));
+        const receipt = await writeAction(
+            [currentPatent.id],
+            "approveRoyaltyContract"
+        );
+
+        if (!receipt || !receipt.status) {
+            dispatch(setErrorAlertMessage("Could not approve the contract!"));
+        } else {
+            dispatch(setInfoModalMessage(INFO_MODAL_MESSAGE));
+        }
+        dispatch(setIsLoading(false));
+    };
+
+    const handleRoyaltyContractPayment = async (
+        contractAddress: string,
+        royaltyFee: string
+    ) => {
+        dispatch(setIsLoading(true));
+        const receipt = await transactionAction(
+            contractAddress,
+            web3.utils.fromWei(royaltyFee)
+        );
+
+        if (!receipt || !receipt.status) {
+            dispatch(setErrorAlertMessage("Could not pay the royalty fee!"));
+        } else {
+            dispatch(setInfoModalMessage(INFO_MODAL_MESSAGE));
+        }
+        dispatch(setIsLoading(false));
     };
 
     const renderAdminContent = () => {
@@ -375,42 +431,23 @@ const Patent = () => {
                         royaltyContract.paused ? (
                             <button
                                 className="btn btn-accent capitalize w-40"
-                                onClick={async () => {
-                                    const receipt = await writeAction(
-                                        [currentPatent.id],
-                                        "approveRoyaltyContract"
-                                    );
-
-                                    if (!receipt || !receipt.status) {
-                                        alert(
-                                            "Transaction failed. Check Metamask."
-                                        );
-                                    }
-                                }}
+                                onClick={handleRoyaltyContractApproval}
                             >
                                 Approve contract
                             </button>
                         ) : (
                             <button
                                 className="btn btn-accent capitalize w-40"
-                                onClick={async () => {
-                                    const receipt = await transactionAction(
+                                onClick={async () =>
+                                    await handleRoyaltyContractPayment(
                                         royaltyContract.contractAddress,
-                                        web3.utils.fromWei(
-                                            royaltyContract.royaltyFee.toString()
-                                        )
-                                    );
-
-                                    if (!receipt || !receipt.status) {
-                                        alert(
-                                            "Transaction failed. Check Metamask."
-                                        );
-                                    }
-                                }}
+                                        royaltyContract.royaltyFee.toString()
+                                    )
+                                }
                             >
-                                {`Pay royalty fee (${web3.utils.fromWei(
+                                {`Pay ${web3.utils.fromWei(
                                     royaltyContract.royaltyFee.toString()
-                                )} ETH)`}
+                                )} ETH`}
                             </button>
                         )
                     ) : (

@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 
+import { useAppDispatch } from "../../state/store";
 import { CurrentAccount } from "../../types/Account";
 import userIcon from "./../../assets/user-regular.svg";
-import { useAppDispatch } from "../../state/store";
 import { setPatents } from "../../state/patents/slice";
 import { logout } from "../../state/account/slice";
 

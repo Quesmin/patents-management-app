@@ -4,6 +4,13 @@ import Web3 from "web3";
 import { RoyaltyContractData } from "../../../types/Patent";
 import { writeAction } from "../../../utils/blockchainUtils";
 import Modal, { ModalProps } from "../../../common/Modal/Modal";
+import { useAppDispatch } from "../../../state/store";
+import {
+    setErrorAlertMessage,
+    setInfoModalMessage,
+    setIsLoading,
+} from "../../../state/notification/slice";
+import { INFO_MODAL_MESSAGE } from "../../../utils/constants";
 
 type RoyaltyContractModalProps = {
     selectedContract: RoyaltyContractData | null;
@@ -17,9 +24,16 @@ const RoyaltyContractModal: React.FC<RoyaltyContractModalProps> = ({
     isShown,
 }) => {
     const web3 = new Web3();
+    const dispatch = useAppDispatch();
 
     const handleContractValidityCheck = async () => {
-        if (!selectedContract) return;
+        dispatch(setIsLoading(true));
+
+        if (!selectedContract) {
+            dispatch(setErrorAlertMessage("There is no selected contract!"));
+            dispatch(setIsLoading(false));
+            return;
+        }
 
         const receipt = await writeAction(
             [selectedContract.patentId, selectedContract.licensee],
@@ -27,15 +41,19 @@ const RoyaltyContractModal: React.FC<RoyaltyContractModalProps> = ({
         );
 
         if (!receipt || !receipt.status) {
-            alert("Failed to check validity of royalty contract");
+            dispatch(
+                setErrorAlertMessage(
+                    "Failed to check validity of royalty contract!"
+                )
+            );
+            dispatch(setIsLoading(false));
             return;
+        } else {
+            dispatch(setInfoModalMessage(INFO_MODAL_MESSAGE));
         }
 
         onClose();
-
-        alert(
-            "Successfully checked validity of royalty contract. If the contract is invalid, it will be deleted."
-        );
+        dispatch(setIsLoading(false));
     };
 
     if (!selectedContract) {

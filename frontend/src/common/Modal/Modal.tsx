@@ -9,7 +9,7 @@ const Modal: React.FC<ModalProps> = ({ isShown, onClose, children }) => {
     if (!isShown) return <></>;
 
     return (
-        <dialog className="modal modal-open">
+        <dialog className="modal modal-open z-10">
             <form method="dialog" className="modal-box">
                 <button
                     className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"

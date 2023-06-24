@@ -4,3 +4,9 @@ export enum State {
     Granted,
     Rejected,
 }
+
+export type NotificationState = {
+    errorAlertMessage: string;
+    infoModalMessage: string;
+    isLoading: boolean;
+};

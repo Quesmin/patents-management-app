@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import PatentCard from "../../common/PatentCard/PatentCard";
-import useBlockchainPatents from "../../hooks/useBlockchainPatents";
+import useBlockchainPatentsSync from "../../hooks/useBlockchainPatents";
 import { State } from "../../types/Common";
 import { BlockchainPatent } from "../../types/Patent";
 import { CustomColors } from "../../utils/constants";
@@ -9,7 +9,7 @@ import { convertUnixToDateFormat } from "../../utils/dataUtils";
 const Admin = () => {
     const navigate = useNavigate();
 
-    const blockchainPatents = useBlockchainPatents();
+    const blockchainPatents = useBlockchainPatentsSync();
 
     const drafts = blockchainPatents.filter((p) => p.status === State.Pending);
     const granteds = blockchainPatents.filter(

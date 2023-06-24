@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PatentCard from "../../common/PatentCard/PatentCard";
-import useBlockchainPatents from "../../hooks/useBlockchainPatents";
+import useBlockchainPatentsSync from "../../hooks/useBlockchainPatents";
 import useLicensedPatents from "../../hooks/useLicensedPatents";
-import { useAppSelector } from "../../state/store";
+import { useAppDispatch, useAppSelector } from "../../state/store";
 import { State } from "../../types/Common";
 import {
     BlockchainPatent,
@@ -16,7 +16,7 @@ import {
     submitToIpfsCall,
     writeAction,
 } from "../../utils/blockchainUtils";
-import { CustomColors } from "../../utils/constants";
+import { CustomColors, INFO_MODAL_MESSAGE } from "../../utils/constants";
 import {
     convertUnixToDateFormat,
     getIsContracValid,
@@ -29,14 +29,20 @@ import {
     isPersonalPatentsWithRoyaltyContractsArray,
 } from "../../utils/guardUtils";
 import SubmitDraftModal from "./SubmitDraftModal/SubmitDraftModal";
+import {
+    setErrorAlertMessage,
+    setInfoModalMessage,
+    setIsLoading,
+} from "../../state/notification/slice";
 
 const User = () => {
+    const dispatch = useAppDispatch();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const currentAccount = useAppSelector(
         (state) => state.account.currentAccount
     );
     const navigate = useNavigate();
-    const blockchainPatents = useBlockchainPatents();
+    const blockchainPatents = useBlockchainPatentsSync();
     const licensedPatents = useLicensedPatents();
 
     const myGrantedPatentsWithContracts =
@@ -69,11 +75,20 @@ const User = () => {
         title: string,
         patentFile: File | null
     ) => {
-        if (!patentFile) return;
+        dispatch(setIsLoading(true));
+        if (!patentFile) {
+            dispatch(setErrorAlertMessage("No patent document available!"));
+            dispatch(setIsLoading(false));
+            return;
+        }
 
         const ipfsHash = await submitToIpfsCall(patentFile);
 
-        if (!ipfsHash) return;
+        if (!ipfsHash) {
+            dispatch(setErrorAlertMessage("Error creating the IPFS hash!"));
+            dispatch(setIsLoading(false));
+            return;
+        }
 
         const receipt = await writeAction(
             [title, ipfsHash],
@@ -82,8 +97,15 @@ const User = () => {
         );
 
         if (!receipt || !receipt.status) {
+            dispatch(
+                setErrorAlertMessage("Could not upload the patent draft!")
+            );
             await removeFromIpfsCall(ipfsHash);
+        } else {
+            dispatch(setInfoModalMessage(INFO_MODAL_MESSAGE));
         }
+
+        dispatch(setIsLoading(false));
     };
 
     const renderPatentSection = (

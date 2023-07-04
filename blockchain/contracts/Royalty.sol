@@ -45,17 +45,6 @@ contract Royalty is Pausable, Ownable {
         return (patentId, patentOwner, licensee, royaltyFee, paymentInterval, expirationDate, paidUntil, approvedForDestroy, paused());
     }
 
-    // function approveForDestroy() external whenNotPaused {
-    //     require(msg.sender == licensee, "Only licensee can approve for destroy.");
-    //     approvedForDestroy = true;
-
-    //     emit RoyaltyContractApprovedForDestroy(patentId, patentOwner, licensee, address(this));
-    // }
-
-    // function getLicenseeApprovalForDestroy() external onlyOwner whenNotPaused view returns (bool) {
-    //     return approvedForDestroy;
-    // }
-
     function payRoyalty() public whenNotPaused payable{
         require(msg.sender == licensee, "Only licensee can pay the royalty.");
         require(msg.value == royaltyFee, "Incorrect fee value.");

@@ -231,7 +231,7 @@ contract PatentManagement {
         patents.push(newPatent);
         
         emit PatentDraftSubmitted(patentId, msg.sender, newPatent.expirationDate);
-        admin.transfer(msg.value); // pay fee to the admin
+        admin.transfer(msg.value);
 
     }
 
@@ -253,7 +253,13 @@ contract PatentManagement {
 
 
     //Patent Owner actions
-    function createRoyaltyContract(bytes32 _patentId, address _licensee, uint256 _royaltyFee, uint256 _paymentInterval, uint256 _contractExpirationDate) external onlyPatentOwner(_patentId) {
+    function createRoyaltyContract(
+        bytes32 _patentId, 
+        address _licensee, 
+        uint256 _royaltyFee, 
+        uint256 _paymentInterval, 
+        uint256 _contractExpirationDate
+        ) external onlyPatentOwner(_patentId) {
         Patent memory currentPatent = _getPatentById(_patentId);
         uint256 currentPatentIndex = _getPatentIndexById(_patentId);
 
@@ -261,7 +267,14 @@ contract PatentManagement {
         require(currentPatent.expirationDate > block.timestamp + 1 days, "Patent will expire in less than 1 day.");
         require(!_contains(_licensee, currentPatent.licensees), "Licensee already exists for this patent.");
 
-        address newRoyaltyContract = address(new Royalty(_patentId, _licensee, _royaltyFee, _paymentInterval, _contractExpirationDate, payable(msg.sender)));
+        address newRoyaltyContract = address(new Royalty(
+            _patentId,
+            _licensee, 
+            _royaltyFee, 
+            _paymentInterval, 
+            _contractExpirationDate, 
+            payable(msg.sender)
+            ));
         lincesedOrgRoyaltyContract[_patentId][_licensee] = newRoyaltyContract;
         
 
@@ -278,7 +291,10 @@ contract PatentManagement {
     }
 
   
-    function checkValidityOfRoyaltyContract(bytes32 _patentId, address _licensee) external onlyPatentOwner(_patentId) {
+    function checkValidityOfRoyaltyContract(
+        bytes32 _patentId, 
+        address _licensee) 
+        external onlyPatentOwner(_patentId) {
         Patent memory currentPatent = _getPatentById(_patentId);
         uint256 currentPatentIndex = _getPatentIndexById(_patentId);
 

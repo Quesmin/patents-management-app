@@ -48,7 +48,8 @@ contract Royalty is Pausable, Ownable {
     function payRoyalty() public whenNotPaused payable{
         require(msg.sender == licensee, "Only licensee can pay the royalty.");
         require(msg.value == royaltyFee, "Incorrect fee value.");
-        require(paidUntil + paymentInterval <= expirationDate, "The payment extension interval exceeds expiration date.");
+        require(paidUntil + paymentInterval <= expirationDate, 
+        "The payment extension interval exceeds expiration date.");
 
         patentOwner.transfer(msg.value);
         paidUntil = paidUntil + paymentInterval;
